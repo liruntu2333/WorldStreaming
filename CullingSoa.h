@@ -53,6 +53,8 @@ CullingSoa<Capacity>::CullingSoa() : m_FloatChunk(FloatCount), m_BoolChunk(BoolC
 template <size_t Capacity>
 void CullingSoa<Capacity>::Push(const DirectX::BoundingSphere& sphere)
 {
+    if (m_Size >= Capacity) return;
+
     m_PositionX[m_Size] = sphere.Center.x;
     m_PositionY[m_Size] = sphere.Center.y;
     m_PositionZ[m_Size] = sphere.Center.z;
@@ -123,17 +125,18 @@ std::vector<size_t> CullingSoa<Capacity>::TickCulling(const std::vector<DirectX:
 
     using FloatBatch = xsimd::batch<float, Architecture>;
     using BoolBatch = xsimd::batch_bool<float, Architecture>;
-    const size_t step = FloatBatch::size;
+    const size_t stride = FloatBatch::size;
 
-    auto compute = [step, &planes, this](size_t from, size_t length)
+    auto dispatch = [stride, &planes, this](size_t from, size_t length)
     {
-        const size_t alignedSize = length - length % step;
+        const size_t alignedSize = length - length % stride;
 
-        for (size_t i = from; i < from + alignedSize; i += step)
+        for (size_t i = from; i < from + alignedSize; i += stride)
         {
             BoolBatch visible(true);
             for (const auto& plane : planes)
             {
+                // 3 multiply 3 add 1 compare
                 FloatBatch dist(plane.w);
                 dist += FloatBatch::load_aligned(m_PositionX + i) * plane.x;
                 dist += FloatBatch::load_aligned(m_PositionY + i) * plane.y;
@@ -150,41 +153,33 @@ std::vector<size_t> CullingSoa<Capacity>::TickCulling(const std::vector<DirectX:
                 visible &= plane.w + m_PositionX[i] * plane.x + m_PositionY[i] * plane.y + m_PositionZ[i] * plane.z < m_Radius[i];
             m_IsVisible[i] = visible;
         }
-
-        std::vector<size_t> result;
-        for (size_t i = from; i < from + length; ++i)
-            if (m_IsVisible[i]) result.push_back(i);
-        return result;
     };
 
     // multi-threading
-    {
-        ThreadPool* pool = g_Context.Pool.get();
-        const auto threadCount = g_Context.ThreadCount;
-        std::vector<std::future<std::vector<size_t>>> futures;
-        const int groupLen = m_Size / threadCount;
+    ThreadPool* pool = g_Context.Pool.get();
+    const auto threadCount = g_Context.ThreadCount;
+    std::vector<std::future<void>> futures;
+    const int groupLen = m_Size / threadCount;
 
-        for (int i = 0; i < threadCount; ++i)
-            futures.emplace_back(pool->enqueue(compute, i * groupLen, groupLen));
+    for (int i = 0; i < threadCount; ++i)
+        futures.emplace_back(
+            pool->enqueue(dispatch, i * groupLen, groupLen));
 
-        std::vector<size_t> result;
-        for (size_t i = 0; i < threadCount; ++i)
-        {
-            auto ret = futures[i].get();
-            result.insert(result.end(), ret.begin(), ret.end());
-        }
-        return result;
-    }
+    for (size_t i = 0; i < threadCount; ++i)
+        futures[i].wait();
 
-    return compute(0, m_Size);
+    //dispatch(0, m_Size);
+
+    std::vector<size_t> visible;
+    for (size_t i = 0; i < m_Size; ++i)
+        if (m_IsVisible[i]) 
+            visible.push_back(i);
+
+    return visible;
 }
 
 template <size_t Capacity>
 void CullingSoa<Capacity>::Clear()
 {
     m_Size = 0;
-    for (size_t i = 0; i < Capacity; ++i)
-    {
-        m_IsVisible[i] = true;
-    }
 }

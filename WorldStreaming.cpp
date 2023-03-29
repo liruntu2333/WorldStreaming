@@ -6,6 +6,7 @@
 #include "GlobalContext.h"
 
 constexpr size_t SoaCapacity = 1 << 14;
+using Architecture = xsimd::avx2;
 
 namespace DirectX
 {
@@ -23,7 +24,7 @@ namespace DirectX
 
 int main()
 {
-    g_Context.Initialize(4);
+    g_Context.Initialize(8);
 
     CullingSoa<SoaCapacity> cullingSoa;
     using namespace DirectX::SimpleMath;
@@ -38,47 +39,47 @@ int main()
             (dis(gen), dis(gen), dis(gen)), 1.0f);
     }
 
-    DirectX::BoundingFrustum frustum(DirectX::XMMatrixPerspectiveFovLH
-        (DirectX::XM_PIDIV4, 1.0f, 1.0f, 1000.0f));
+    DirectX::BoundingFrustum frustum(Matrix::CreatePerspectiveFieldOfView
+        (DirectX::XM_PIDIV4, 1.0f, 1.0f, 1000.0f), true);
 
     while (true)
     {
         static int loop = 0;
-        static float tsDop = 0.0f;
-        static float tsOop = 0.0f;
+        static float soaSum = 0.0f;
+        static float dxSum = 0.0f;
 
         std::vector<size_t> soaRes;
         std::vector<size_t> dxRes;
 
         {
             const auto start = std::chrono::steady_clock::now();
-            soaRes = cullingSoa.TickCulling<xsimd::avx2>(data, frustum);
+            soaRes = cullingSoa.TickCulling<Architecture>(data, frustum);
             const auto end = std::chrono::steady_clock::now();
 
             const auto duration = std::chrono::duration_cast<std::chrono::microseconds>((end - start));
-            tsDop += duration.count();
+            soaSum += duration.count();
         }
 
-        //{
-        //    const auto start = std::chrono::steady_clock::now();
-        //    dxRes = DirectX::TickCulling(data, frustum);
-        //    //auto res = cullingSoa.TickCulling(data, frustum);
-        //    const auto end = std::chrono::steady_clock::now();
+        {
+            const auto start = std::chrono::steady_clock::now();
+            dxRes = DirectX::TickCulling(data, frustum);
+            const auto end = std::chrono::steady_clock::now();
 
-        //    const auto duration = std::chrono::duration_cast<std::chrono::microseconds>((end - start));
-        //    tsOop += duration.count();
-        //}
+            const auto duration = std::chrono::duration_cast<std::chrono::microseconds>((end - start));
+            dxSum += duration.count();
+        }
 
         assert(soaRes == dxRes);
 
         if (++loop == 10000)
         {
             system("cls");
-            std::cout << "CullingSoa time elapsed : " << tsDop / static_cast<float>(loop) << " us." << std::endl;
-            std::cout << "DXCollision time elapsed : " << tsOop / static_cast<float>(loop) << " us." << std::endl;
+            std::cout << Architecture::name() << std::endl;
+            std::cout << "CullingSoa time elapsed : " << soaSum / static_cast<float>(loop) << " us." << std::endl;
+            std::cout << "DXCollision time elapsed : " << dxSum / static_cast<float>(loop) << " us." << std::endl;
             loop = 0;
-            tsDop = 0.0f;
-            tsOop = 0.0f;
+            soaSum = 0.0f;
+            dxSum = 0.0f;
         }
     }
 }
