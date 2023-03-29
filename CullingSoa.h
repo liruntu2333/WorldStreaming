@@ -1,8 +1,6 @@
 #pragma once
 #include "AlignedVector.h"
 #include <directxtk/SimpleMath.h>
-#include "GlobalContext.h"
-#include "ThreadPool.h"
 
 template <size_t Capacity>
 class CullingSoa
@@ -156,19 +154,19 @@ std::vector<size_t> CullingSoa<Capacity>::TickCulling(const std::vector<DirectX:
     };
 
     // multi-threading
-    ThreadPool* pool = g_Context.Pool.get();
-    const auto threadCount = g_Context.ThreadCount;
-    std::vector<std::future<void>> futures;
-    const int groupLen = m_Size / threadCount;
+    //ThreadPool* pool = g_Context.Pool.get();
+    //const auto threadCount = g_Context.ThreadCount;
+    //std::vector<std::future<void>> futures;
+    //const int groupLen = m_Size / threadCount;
 
-    for (int i = 0; i < threadCount; ++i)
-        futures.emplace_back(
-            pool->enqueue(dispatch, i * groupLen, groupLen));
+    //for (int i = 0; i < threadCount; ++i)
+    //    futures.emplace_back(
+    //        pool->enqueue(dispatch, i * groupLen, groupLen));
 
-    for (size_t i = 0; i < threadCount; ++i)
-        futures[i].wait();
+    //for (size_t i = 0; i < threadCount; ++i)
+    //    futures[i].wait();
 
-    //dispatch(0, m_Size);
+    dispatch(0, m_Size);
 
     std::vector<size_t> visible;
     for (size_t i = 0; i < m_Size; ++i)
