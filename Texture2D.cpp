@@ -13,9 +13,9 @@ Texture2D::Texture2D(ID3D11Device* device, const D3D11_TEXTURE2D_DESC& desc) : m
 	ThrowIfFailed(hr);
 }
 
-Texture2D::Texture2D(ID3D11Device* device, const wchar_t* path)
+Texture2D::Texture2D(ID3D11Device* device, const std::filesystem::path& path)
 {
-	const auto hr = CreateWICTextureFromFile(device, path, 
+	const auto hr = CreateWICTextureFromFile(device, path.wstring().c_str(), 
 		reinterpret_cast<ID3D11Resource**>(m_Texture.GetAddressOf()), m_Srv.GetAddressOf());
 
 	ThrowIfFailed(hr);
@@ -70,13 +70,92 @@ void Texture2D::CreateViews(ID3D11Device* device)
 	}
 }
 
-void Texture2D::Load(ID3D11Device* device, const wchar_t* path)
+void Texture2D::Load(ID3D11Device* device, ID3D11DeviceContext* context, const std::filesystem::path& path)
 {
-	const auto hr = CreateWICTextureFromFile(device, path, 
+	const auto hr = CreateWICTextureFromFile(device, path.wstring().c_str(), 
 		reinterpret_cast<ID3D11Resource**>(m_Texture.ReleaseAndGetAddressOf()), 
 		m_Srv.ReleaseAndGetAddressOf());
 
 	ThrowIfFailed(hr);
 
+	m_Texture->GetDesc(&m_Desc);
+
+	CreateViews(device);
+}
+
+Texture2DArray::Texture2DArray(ID3D11Device* device, ID3D11DeviceContext* context, const std::filesystem::path& folder)
+{
+	std::vector<std::filesystem::path> paths;
+	for (const auto& entry : std::filesystem::directory_iterator(folder))
+	{
+		paths.push_back(entry.path());
+	}
+	std::sort(paths.begin(), paths.end());
+	std::vector<ID3D11Texture2D*> textures;
+	for (const auto& path : paths)
+	{
+		Microsoft::WRL::ComPtr<ID3D11Texture2D> texture;
+		const auto hr = CreateWICTextureFromFile(device, path.c_str(), 
+			reinterpret_cast<ID3D11Resource**>(texture.GetAddressOf()), nullptr);
+		ThrowIfFailed(hr);
+		textures.push_back(texture.Get());
+	}
+
+	D3D11_TEXTURE2D_DESC desc;
+	textures[0]->GetDesc(&desc);
+	desc.ArraySize = static_cast<UINT>(textures.size());
+	desc.MipLevels = 1;
+	desc.BindFlags = D3D11_BIND_SHADER_RESOURCE;
+	const auto hr = device->CreateTexture2D(&desc, nullptr, &m_Texture);
+	ThrowIfFailed(hr);
+	for (UINT i = 0; i < desc.ArraySize; ++i)
+	{
+		context->CopySubresourceRegion(m_Texture.Get(), i, 0, 0, 0,
+			textures[i], 0, nullptr);
+	}
+	m_Texture->GetDesc(&m_Desc);
+}
+
+void Texture2DArray::CreateViews(ID3D11Device* device)
+{
+	if (m_Srv == nullptr)
+	{
+		const auto srv = CD3D11_SHADER_RESOURCE_VIEW_DESC(m_Texture.Get(),
+			D3D11_SRV_DIMENSION_TEXTURE2DARRAY, m_Desc.Format);
+		const auto hr = device->CreateShaderResourceView(m_Texture.Get(), &srv, &m_Srv);
+		ThrowIfFailed(hr);
+	}
+}
+
+void Texture2DArray::Load(ID3D11Device* device, ID3D11DeviceContext* context, const std::filesystem::path& folder)
+{
+	std::vector<std::filesystem::path> paths;
+	for (const auto& entry : std::filesystem::directory_iterator(folder))
+	{
+		paths.push_back(entry.path());
+	}
+	std::sort(paths.begin(), paths.end());
+	std::vector<ID3D11Texture2D*> textures;
+	for (const auto& path : paths)
+	{
+		Microsoft::WRL::ComPtr<ID3D11Texture2D> texture;
+		const auto hr = CreateWICTextureFromFile(device, path.c_str(),
+			reinterpret_cast<ID3D11Resource**>(texture.GetAddressOf()), nullptr);
+		ThrowIfFailed(hr);
+		textures.push_back(texture.Get());
+	}
+
+	D3D11_TEXTURE2D_DESC desc;
+	textures[0]->GetDesc(&desc);
+	desc.ArraySize = static_cast<UINT>(textures.size());
+	desc.MipLevels = 1;
+	desc.BindFlags = D3D11_BIND_SHADER_RESOURCE;
+	const auto hr = device->CreateTexture2D(&desc, nullptr, &m_Texture);
+	ThrowIfFailed(hr);
+	for (UINT i = 0; i < desc.ArraySize; ++i)
+	{
+		context->CopySubresourceRegion(m_Texture.Get(), i, 0, 0, 0,
+			textures[i], 0, nullptr);
+	}
 	m_Texture->GetDesc(&m_Desc);
 }

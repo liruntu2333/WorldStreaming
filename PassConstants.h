@@ -8,8 +8,8 @@ struct PassConstants
     Matrix ViewProj;
     Vector3 EyePosition;
     float DeltaTime{};
+    Matrix View;
+    Matrix Proj;
 
     PassConstants() = default;
-    PassConstants(const Matrix& vp, const Vector3& ep, const float dt) :
-        ViewProj(vp), EyePosition(ep), DeltaTime(dt) {}
 };

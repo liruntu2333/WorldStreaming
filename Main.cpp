@@ -6,17 +6,13 @@
 #include <chrono>
 #include <random>
 
-#include "imgui.h"
 #include "imgui_impl_dx11.h"
 #include "imgui_impl_win32.h"
-#include "CullingSoa.h"
 #include "GlobalContext.h"
-#include "Texture2D.h"
+#include "CullingSoa.h"
 #include "PlaneRenderer.h"
-
-constexpr size_t SoaCapacity = 1 << 12;
-using Architecture = xsimd::avx2;
-using namespace DirectX::SimpleMath;
+#include "ModelRenderer.h"
+#include "Camera.h"
 
 // Data
 static ID3D11Device*            g_pd3dDevice = NULL;
@@ -24,14 +20,19 @@ static ID3D11DeviceContext*     g_pd3dDeviceContext = NULL;
 static IDXGISwapChain*          g_pSwapChain = NULL;
 static ID3D11RenderTargetView*  g_mainRenderTargetView = NULL;
 
+constexpr size_t SoaCapacity = 1 << 12;
+using Architecture = xsimd::avx2;
+using namespace DirectX::SimpleMath;
+
 namespace
 {
 	std::unique_ptr<DirectX::Texture2D> g_depthStencil = nullptr;
     std::unique_ptr<CullingSoa<SoaCapacity>> g_CullingSoa = nullptr;
     std::vector <DirectX::BoundingSphere> g_BsData{};
-    std::unique_ptr<DirectX::BoundingFrustum> g_Frustum = nullptr;
     std::shared_ptr<PassConstants> g_PassConstants = nullptr;
     std::unique_ptr<Renderer> g_PlaneRender = nullptr;
+    std::unique_ptr<Renderer> g_ModelRender = nullptr;
+    std::unique_ptr<Camera> g_Camera = nullptr;
 }
 
 namespace DirectX
@@ -122,6 +123,8 @@ int main(int, char**)
         ImGui_ImplWin32_NewFrame();
         ImGui::NewFrame();
 
+        UpdateConstants(io);
+
         // tick particle system
         {
         	static int cnt = 0;
@@ -130,7 +133,7 @@ int main(int, char**)
 
         	auto start = std::chrono::steady_clock::now();
         	{
-                auto soaRes = g_CullingSoa->TickCulling<Architecture>(g_BsData, *g_Frustum);
+                auto soaRes = g_CullingSoa->TickCulling<Architecture>(g_BsData, g_Camera->GetFrustum());
         	}
             auto end = std::chrono::steady_clock::now();
             const auto duration = std::chrono::duration_cast<std::chrono::microseconds>((end - start));
@@ -148,8 +151,6 @@ int main(int, char**)
             ImGui::End();
         }
 
-        UpdateConstants(io);
-
         // Rendering
         ImGui::Render();
         const float clear_color_with_alpha[4] = { clear_color.x * clear_color.w, clear_color.y * clear_color.w, clear_color.z * clear_color.w, clear_color.w };
@@ -158,7 +159,9 @@ int main(int, char**)
         g_pd3dDeviceContext->ClearDepthStencilView(g_depthStencil->GetDsv(),
                                                    D3D11_CLEAR_DEPTH, 1.0f, 0);
 
+        g_Camera->SetViewPort(g_pd3dDeviceContext);
         g_PlaneRender->Render(g_pd3dDeviceContext);
+        g_ModelRender->Render(g_pd3dDeviceContext);
 
         ImGui_ImplDX11_RenderDrawData(ImGui::GetDrawData());
 
@@ -229,7 +232,7 @@ void CreateRenderTarget()
 
 	D3D11_TEXTURE2D_DESC texDesc;
 	pBackBuffer->GetDesc(&texDesc);
-    CD3D11_TEXTURE2D_DESC dsDesc(DXGI_FORMAT_D32_FLOAT,
+    CD3D11_TEXTURE2D_DESC dsDesc(DXGI_FORMAT_D24_UNORM_S8_UINT,
         texDesc.Width, texDesc.Height, 1, 0, D3D11_BIND_DEPTH_STENCIL,
         D3D11_USAGE_DEFAULT);
 	g_depthStencil = std::make_unique<DirectX::Texture2D>(g_pd3dDevice, dsDesc);
@@ -255,44 +258,26 @@ void InitWorldStreaming()
     {
         g_BsData[i] = DirectX::BoundingSphere(Vector3(dis(gen), dis(gen), dis(gen)), 1.0f);
     }
-
-    g_Frustum = std::make_unique<DirectX::BoundingFrustum>
-        (Matrix::CreatePerspectiveFieldOfView(DirectX::XM_PIDIV4, 1.0f, 1.0f, 1000.0f), true);
-
     g_Context.Initialize(4);
 
     g_PassConstants = std::make_shared<PassConstants>();
     g_PlaneRender = std::make_unique<PlaneRenderer>(g_pd3dDevice, g_PassConstants);
     g_PlaneRender->Initialize(g_pd3dDeviceContext);
+
+    g_ModelRender = std::make_unique<ModelRenderer>(g_pd3dDevice, L"./Asset/patrick/patrick.obj", g_PassConstants);
+    g_ModelRender->Initialize(g_pd3dDeviceContext);
+
+    g_Camera = std::make_unique<Camera>();
 }
 
 void UpdateConstants(const ImGuiIO& io)
 {
-    const float ratio = io.DisplaySize.x / io.DisplaySize.y;
-    static Vector3 eye(0.0f, 120.0f, 10.0f);
+    g_Camera->Update(io);
 
-    if (io.KeysDown[ImGuiKey_A])
-    {
-        eye.x -= 50.0f * io.DeltaTime;
-    }
-    if (io.KeysDown[ImGuiKey_D])
-    {
-        eye.x += 50.0f * io.DeltaTime;
-    }
-    if (io.KeysDown[ImGuiKey_W])
-    {
-        eye.z += 50.0f * io.DeltaTime;
-    }
-    if (io.KeysDown[ImGuiKey_S])
-    {
-        eye.z -= 50.0f * io.DeltaTime;
-    }
-
-    const Matrix view = DirectX::XMMatrixLookAtLH(eye, Vector3::Zero, Vector3::Up);
-    const Matrix proj = DirectX::XMMatrixPerspectiveFovLH
-        (DirectX::XM_PIDIV4, ratio, 0.1f, 500.0f);
-    g_PassConstants->EyePosition = eye;
-    g_PassConstants->ViewProj = (view * proj).Transpose();
+    g_PassConstants->View = g_Camera->GetViewMatrix().Transpose();
+    g_PassConstants->Proj = g_Camera->GetProjectionMatrix().Transpose();
+    g_PassConstants->ViewProj = g_Camera->GetViewProjectionMatrix().Transpose();
+    g_PassConstants->EyePosition = g_Camera->GetPosition();
     g_PassConstants->DeltaTime = io.DeltaTime;
 }
 

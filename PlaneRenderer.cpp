@@ -1,7 +1,9 @@
 #include "PlaneRenderer.h"
 #include "D3DHelper.h"
+#include "d3dcompiler.h"
 
 using namespace DirectX;
+using Microsoft::WRL::ComPtr;
 
 PlaneRenderer::PlaneRenderer(ID3D11Device* device, std::shared_ptr<PassConstants> constants): Renderer(device),
 	m_Constants(constants), m_Cb0(device)
@@ -10,14 +12,16 @@ PlaneRenderer::PlaneRenderer(ID3D11Device* device, std::shared_ptr<PassConstants
 
 void PlaneRenderer::Initialize(ID3D11DeviceContext* context)
 {
-	const auto vs = LoadBinary(L"./shader/DummyVS.cso");
-	auto hr = m_Device->CreateVertexShader(vs->GetBufferPointer(),
-		vs->GetBufferSize(), nullptr, &m_Vs);
+	ComPtr<ID3DBlob> blob;
+	ThrowIfFailed(D3DReadFileToBlob(L"./shader/DummyVS.cso", &blob));
+	auto hr = m_Device->CreateVertexShader(blob->GetBufferPointer(),
+		blob->GetBufferSize(), nullptr, &m_Vs);
 	ThrowIfFailed(hr);
 
-	const auto ps = LoadBinary(L"./shader/DummyPS.cso");
-	hr = m_Device->CreatePixelShader(ps->GetBufferPointer(),
-		ps->GetBufferSize(), nullptr, &m_Ps);
+	blob->Release();
+	ThrowIfFailed(D3DReadFileToBlob(L"./shader/DummyPS.cso", &blob));
+	hr = m_Device->CreatePixelShader(blob->GetBufferPointer(),
+		blob->GetBufferSize(), nullptr, &m_Ps);
 	ThrowIfFailed(hr);
 }
 

@@ -1,7 +1,9 @@
 #pragma once
 
 #include <d3d11.h>
+#include <vector>
 #include <wrl/client.h>
+#include  <filesystem>
 
 namespace DirectX
 {
@@ -9,7 +11,8 @@ namespace DirectX
 	{
 	public:
 		Texture2D(ID3D11Device* device, const D3D11_TEXTURE2D_DESC& desc);
-		Texture2D(ID3D11Device* device, const wchar_t* path);
+		Texture2D(ID3D11Device* device, const std::filesystem::path& path);
+		Texture2D() = default;
 		virtual ~Texture2D() = default;
 
 		Texture2D(Texture2D&&) = default;
@@ -27,7 +30,7 @@ namespace DirectX
 		[[nodiscard]] const auto& GetDesc() const { return m_Desc; }
 
 		virtual void CreateViews(ID3D11Device* device);
-		void Load(ID3D11Device* device, const wchar_t* path);
+		virtual void Load(ID3D11Device* device, ID3D11DeviceContext* context, const std::filesystem::path& path);
 
 	protected:
 		Microsoft::WRL::ComPtr<ID3D11Texture2D> m_Texture = nullptr;
@@ -38,6 +41,16 @@ namespace DirectX
 		Microsoft::WRL::ComPtr<ID3D11DepthStencilView> m_Dsv = nullptr;
 
 		D3D11_TEXTURE2D_DESC m_Desc{};
+	};
+
+	class Texture2DArray : public Texture2D
+	{
+	public:
+		Texture2DArray(ID3D11Device* device, ID3D11DeviceContext* context, const std::filesystem::path& folder);
+		~Texture2DArray() override = default;
+
+		void CreateViews(ID3D11Device* device) override;
+		void Load(ID3D11Device* device, ID3D11DeviceContext* context, const std::filesystem::path& folder) override;
 	};
 }
 

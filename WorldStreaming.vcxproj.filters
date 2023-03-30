@@ -8,6 +8,9 @@
     <ClCompile Include="Texture2D.cpp" />
     <ClCompile Include="Renderer.cpp" />
     <ClCompile Include="PlaneRenderer.cpp" />
+    <ClCompile Include="Camera.cpp" />
+    <ClCompile Include="AssetImporter.cpp" />
+    <ClCompile Include="ModelRenderer.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="AlignedVector.h" />
@@ -23,6 +26,10 @@
     <ClInclude Include="Renderer.h" />
     <ClInclude Include="PassConstants.h" />
     <ClInclude Include="PlaneRenderer.h" />
+    <ClInclude Include="Camera.h" />
+    <ClInclude Include="AssetImporter.h" />
+    <ClInclude Include="VertexPositionNormalTangentTexture.h" />
+    <ClInclude Include="ModelRenderer.h" />
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Shader">
@@ -34,6 +41,12 @@
       <Filter>Shader</Filter>
     </FxCompile>
     <FxCompile Include="Shader\DummyVS.hlsl">
+      <Filter>Shader</Filter>
+    </FxCompile>
+    <FxCompile Include="Shader\SimpleVS.hlsl">
+      <Filter>Shader</Filter>
+    </FxCompile>
+    <FxCompile Include="Shader\SimplePS.hlsl">
       <Filter>Shader</Filter>
     </FxCompile>
   </ItemGroup>
