@@ -22,7 +22,7 @@ Matrix Camera::GetViewProjectionMatrix() const
 
 BoundingFrustum Camera::GetFrustum() const
 {
-    BoundingFrustum frustum(GetViewProjectionMatrix());
+    BoundingFrustum frustum(GetProjectionMatrix());
     frustum.Transform(frustum, Matrix::CreateFromYawPitchRoll(m_Rotation) * 
         Matrix::CreateTranslation(m_Position));
     return frustum;
@@ -57,19 +57,19 @@ void Camera::Update(const ImGuiIO& io)
 
     if (io.KeysDown[ImGui::GetKeyIndex(ImGuiKey_W)])
     {
-        m_Position += forward * dt * 10.0f;
+        m_Position += forward * dt * 100.0f;
     }
     if (io.KeysDown[ImGui::GetKeyIndex(ImGuiKey_S)])
     {
-        m_Position -= forward * dt * 10.0f;
+        m_Position -= forward * dt * 100.0f;
     }
     if (io.KeysDown[ImGui::GetKeyIndex(ImGuiKey_A)])
     {
-        m_Position -= right * dt * 10.0f;
+        m_Position -= right * dt * 100.0f;
     }
     if (io.KeysDown[ImGui::GetKeyIndex(ImGuiKey_D)])
     {
-        m_Position += right * dt * 10.0f;
+        m_Position += right * dt * 100.0f;
     }
 
     if (io.MouseDown[ImGuiMouseButton_Right])

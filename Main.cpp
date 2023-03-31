@@ -9,10 +9,12 @@
 #include "imgui_impl_dx11.h"
 #include "imgui_impl_win32.h"
 #include "GlobalContext.h"
-#include "CullingSoa.h"
+#include "WorldSystem.h"
 #include "PlaneRenderer.h"
 #include "ModelRenderer.h"
 #include "Camera.h"
+#include "InstanceData.h"
+#include "StaticObject.h"
 
 // Data
 static ID3D11Device*            g_pd3dDevice = NULL;
@@ -20,33 +22,18 @@ static ID3D11DeviceContext*     g_pd3dDeviceContext = NULL;
 static IDXGISwapChain*          g_pSwapChain = NULL;
 static ID3D11RenderTargetView*  g_mainRenderTargetView = NULL;
 
-constexpr size_t SoaCapacity = 1 << 12;
-using Architecture = xsimd::avx2;
 using namespace DirectX::SimpleMath;
 
 namespace
 {
 	std::unique_ptr<DirectX::Texture2D> g_depthStencil = nullptr;
-    std::unique_ptr<CullingSoa<SoaCapacity>> g_CullingSoa = nullptr;
-    std::vector <DirectX::BoundingSphere> g_BsData{};
-    std::shared_ptr<PassConstants> g_PassConstants = nullptr;
+
+    std::shared_ptr<Constants> g_PassConstants = nullptr;
+    std::shared_ptr<std::vector<InstanceData>> g_Instances = nullptr;
     std::unique_ptr<Renderer> g_PlaneRender = nullptr;
     std::unique_ptr<Renderer> g_ModelRender = nullptr;
     std::unique_ptr<Camera> g_Camera = nullptr;
-}
-
-namespace DirectX
-{
-    std::vector<size_t> TickCulling(const std::vector<BoundingSphere>& data,
-        const BoundingFrustum& frustum)
-    {
-        std::vector<size_t> res;
-        res.reserve(data.size());
-        for (size_t i = 0; i < data.size(); ++i)
-            if (frustum.Contains(data[i]) != DISJOINT)
-                res.push_back(i);
-        return res;
-    }
+    std::unique_ptr<WorldSystem> g_WorldSystem = nullptr;
 }
 
 // Forward declarations of helper functions
@@ -127,27 +114,29 @@ int main(int, char**)
 
         // tick particle system
         {
-        	static int cnt = 0;
-            static float timeSum = 0.0;
-            static float timeAvg = 0.0;
+        	//static int cnt = 0;
+         //   static float timeSum = 0.0;
+         //   static float timeAvg = 0.0;
 
-        	auto start = std::chrono::steady_clock::now();
-        	{
-                auto soaRes = g_CullingSoa->TickCulling<Architecture>(g_BsData, g_Camera->GetFrustum());
-        	}
-            auto end = std::chrono::steady_clock::now();
-            const auto duration = std::chrono::duration_cast<std::chrono::microseconds>((end - start));
-            timeSum += duration.count();
+        	//auto start = std::chrono::steady_clock::now();
+        	//{
+         //       auto soaRes = g_CullingSoa->TickCulling<Architecture>(g_BsData, g_Camera->GetFrustum());
+        	//}
+         //   auto end = std::chrono::steady_clock::now();
+         //   const auto duration = std::chrono::duration_cast<std::chrono::microseconds>((end - start));
+         //   timeSum += duration.count();
 
-	        if (++cnt > 100)
-	        {
-                timeAvg = timeSum / static_cast<float>(cnt);
-                timeSum = 0.0;
-                cnt = 0;
-	        }
+	        //if (++cnt > 100)
+	        //{
+         //       timeAvg = timeSum / static_cast<float>(cnt);
+         //       timeSum = 0.0;
+         //       cnt = 0;
+	        //}
+
+            *g_Instances = g_WorldSystem->Tick(*g_Camera);
 
         	ImGui::Begin("Culling tick");
-            ImGui::Text("Arch : %s\t Time elapsed : %f", Architecture::name(), timeAvg);
+            ImGui::Text("Object count : %d \tVisible count : %d", g_WorldSystem->GetObjectCount(), g_Instances->size());
             ImGui::End();
         }
 
@@ -248,23 +237,17 @@ void CleanupRenderTarget()
 
 void InitWorldStreaming()
 {
-    g_CullingSoa = std::make_unique<CullingSoa<SoaCapacity>>();
-
-    g_BsData.resize(SoaCapacity);
-    std::random_device rd;
-    std::mt19937 gen(rd());
-    std::uniform_real_distribution dis(-100.0f, 100.0f);
-    for (size_t i = 0; i < SoaCapacity; ++i)
-    {
-        g_BsData[i] = DirectX::BoundingSphere(Vector3(dis(gen), dis(gen), dis(gen)), 1.0f);
-    }
     g_Context.Initialize(4);
 
-    g_PassConstants = std::make_shared<PassConstants>();
+    g_WorldSystem = std::make_unique<WorldSystem>();
+    g_WorldSystem->Initialize();
+    g_Instances = std::make_shared<std::vector<InstanceData>>();
+
+    g_PassConstants = std::make_shared<Constants>();
     g_PlaneRender = std::make_unique<PlaneRenderer>(g_pd3dDevice, g_PassConstants);
     g_PlaneRender->Initialize(g_pd3dDeviceContext);
 
-    g_ModelRender = std::make_unique<ModelRenderer>(g_pd3dDevice, L"./Asset/patrick/patrick.obj", g_PassConstants);
+    g_ModelRender = std::make_unique<ModelRenderer>(g_pd3dDevice, L"./Asset/patrick/patrick.obj", g_PassConstants, g_Instances);
     g_ModelRender->Initialize(g_pd3dDeviceContext);
 
     g_Camera = std::make_unique<Camera>();

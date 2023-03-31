@@ -3,7 +3,7 @@
 #include <directxtk/SimpleMath.h>
 
 using namespace DirectX::SimpleMath;
-struct PassConstants
+struct Constants
 {
     Matrix ViewProj;
     Vector3 EyePosition;
@@ -11,5 +11,5 @@ struct PassConstants
     Matrix View;
     Matrix Proj;
 
-    PassConstants() = default;
+    Constants() = default;
 };

@@ -173,6 +173,7 @@
     <ClCompile Include="PlaneRenderer.cpp" />
     <ClCompile Include="Renderer.cpp" />
     <ClCompile Include="Texture2D.cpp" />
+    <ClCompile Include="WorldSystem.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="AlignedVector.h" />
@@ -184,14 +185,17 @@
     <ClInclude Include="GlobalContext.h" />
     <ClInclude Include="imgui_impl_dx11.h" />
     <ClInclude Include="imgui_impl_win32.h" />
+    <ClInclude Include="InstanceData.h" />
     <ClInclude Include="ModelRenderer.h" />
-    <ClInclude Include="PassConstants.h" />
+    <ClInclude Include="Constants.h" />
     <ClInclude Include="PlaneRenderer.h" />
     <ClInclude Include="Renderer.h" />
+    <ClInclude Include="StaticObject.h" />
     <ClInclude Include="StructuredBuffer.h" />
     <ClInclude Include="Texture2D.h" />
     <ClInclude Include="ThreadPool.h" />
     <ClInclude Include="VertexPositionNormalTangentTexture.h" />
+    <ClInclude Include="WorldSystem.h" />
   </ItemGroup>
   <ItemGroup>
     <FxCompile Include="Shader\DummyPS.hlsl">

@@ -11,6 +11,7 @@
     <ClCompile Include="Camera.cpp" />
     <ClCompile Include="AssetImporter.cpp" />
     <ClCompile Include="ModelRenderer.cpp" />
+    <ClCompile Include="WorldSystem.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="AlignedVector.h" />
@@ -24,12 +25,15 @@
     <ClInclude Include="StructuredBuffer.h" />
     <ClInclude Include="Texture2D.h" />
     <ClInclude Include="Renderer.h" />
-    <ClInclude Include="PassConstants.h" />
+    <ClInclude Include="Constants.h" />
     <ClInclude Include="PlaneRenderer.h" />
     <ClInclude Include="Camera.h" />
     <ClInclude Include="AssetImporter.h" />
     <ClInclude Include="VertexPositionNormalTangentTexture.h" />
     <ClInclude Include="ModelRenderer.h" />
+    <ClInclude Include="WorldSystem.h" />
+    <ClInclude Include="StaticObject.h" />
+    <ClInclude Include="InstanceData.h" />
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Shader">

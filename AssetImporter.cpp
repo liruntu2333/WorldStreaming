@@ -26,6 +26,12 @@ AssetImporter::ModelData AssetImporter::LoadTriangleList(const std::filesystem::
     for (uint32_t i = 0; i < meshCnt; ++i)
     {
         const aiMesh* mesh = scene->mMeshes[i];
+
+        const auto vertCnt = mesh->mNumVertices;
+        DirectX::BoundingSphere sphere;
+        DirectX::BoundingSphere::CreateFromPoints(sphere, vertCnt,
+            reinterpret_cast<const DirectX::XMFLOAT3*>(mesh->mVertices), sizeof(aiVector3D));
+        const Vector3 offset = sphere.Center;
         const auto faceCnt = mesh->mNumFaces;
 
         triangleList.reserve(triangleList.size() + faceCnt * 3);
@@ -38,6 +44,7 @@ AssetImporter::ModelData AssetImporter::LoadTriangleList(const std::filesystem::
                 const auto idx = face.mIndices[k];
 
                 Vector3 pos(mesh->mVertices[idx].x, mesh->mVertices[idx].y, mesh->mVertices[idx].z);
+                pos -= offset;
                 Vector3 norm(mesh->mNormals[idx].x, mesh->mNormals[idx].y, mesh->mNormals[idx].z);
                 Vector3 tan(mesh->mTangents[idx].x, mesh->mTangents[idx].y, mesh->mTangents[idx].z);
                 Vector2 texCoord(mesh->mTextureCoords[0][idx].x, mesh->mTextureCoords[0][idx].y);

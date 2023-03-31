@@ -3,23 +3,27 @@
 #include "AssetImporter.h"
 #include "VertexPositionNormalTangentTexture.h"
 #include <d3dcompiler.h>
+#include "InstanceData.h"
 
 using Vertex = VertexPositionNormalTangentTexture;
 using namespace DirectX;
 using Microsoft::WRL::ComPtr;
 
+constexpr size_t InstanceCapacity = 1 << 13;
+
 ModelRenderer::ModelRenderer(ID3D11Device* device, std::filesystem::path model, 
-    std::shared_ptr<PassConstants> constants) :
-    Renderer(device), m_Constants(std::move(constants)), m_Asset(std::move(model))
+    std::shared_ptr<Constants> constants, std::shared_ptr<std::vector<InstanceData>> instances) :
+    Renderer(device), m_Constants(std::move(constants)), m_Instances(std::move(instances)), m_Asset(std::move(model))
 {
 }
 
 void ModelRenderer::Initialize(ID3D11DeviceContext* context)
 {
-    m_Vc0 = std::make_unique<ConstantBuffer<PassConstants>>(m_Device);
+    m_Vc0 = std::make_unique<ConstantBuffer<Constants>>(m_Device);
     auto [mesh, tex] = AssetImporter::LoadTriangleList(m_Asset);
 
     m_Vt0 = std::make_unique<StructuredBuffer<Vertex>>(m_Device, mesh.data(), mesh.size());
+	m_Vt1 = std::make_unique<StructuredBuffer<InstanceData>>(m_Device, InstanceCapacity);
     m_Pt1 = std::make_unique<Texture2D>(m_Device, tex);
 
 	ComPtr<ID3DBlob> blob;
@@ -49,8 +53,8 @@ void ModelRenderer::Render(ID3D11DeviceContext* context)
 	{
 		const auto buffer = m_Vc0->GetBuffer();
 		context->VSSetConstantBuffers(0, 1, &buffer);
-		const auto view = m_Vt0->GetSrv();
-		context->VSSetShaderResources(0, 1, &view);
+		ID3D11ShaderResourceView* srv[] = { m_Vt0->GetSrv(), m_Vt1->GetSrv() };
+		context->VSSetShaderResources(0, _countof(srv), srv);
 	}
 
 	{
@@ -64,10 +68,11 @@ void ModelRenderer::Render(ID3D11DeviceContext* context)
 	const auto depthTest = s_CommonStates->DepthDefault();
 	context->OMSetDepthStencilState(depthTest, 0);
 
-	context->Draw(m_Vt0->m_Capacity, 0);
+	context->DrawInstanced(m_Vt0->m_Capacity, m_Instances->size(), 0, 0);
 }
 
 void ModelRenderer::UpdateBuffer(ID3D11DeviceContext* context)
 {
 	m_Vc0->SetData(context, *m_Constants);
+	m_Vt1->SetData(context, m_Instances->data(), m_Instances->size());
 }

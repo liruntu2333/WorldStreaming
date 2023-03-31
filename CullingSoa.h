@@ -75,22 +75,18 @@ std::vector<size_t> CullingSoa<Capacity>::TickCulling(const std::vector<DirectX:
 
     DirectX::XMVECTOR vs[6];
     frustum.GetPlanes(vs, vs + 1, vs + 2, vs + 3, vs + 4, vs + 5);
-    const DirectX::SimpleMath::Plane planes[6]
+    DirectX::SimpleMath::Plane planes[6];
+    for (size_t i = 0; i < 6; ++i) 
     {
-        DirectX::SimpleMath::Plane(vs[0]),
-        DirectX::SimpleMath::Plane(vs[1]),
-        DirectX::SimpleMath::Plane(vs[2]),
-        DirectX::SimpleMath::Plane(vs[3]),
-        DirectX::SimpleMath::Plane(vs[4]),
-        DirectX::SimpleMath::Plane(vs[5])
-    };
+        planes[i] = DirectX::SimpleMath::Plane(vs[i]);
+    }
 
     for (size_t i = 0; i < m_Size; ++i)
     {
-        bool visible = true;
+        bool isVisible = true;
         for (const auto& plane : planes)
-            visible &= plane.w + m_PositionX[i] * plane.x + m_PositionY[i] * plane.y + m_PositionZ[i] * plane.z < m_Radius[i];
-        m_IsVisible[i] = visible;
+            isVisible = isVisible && plane.w + m_PositionX[i] * plane.x + m_PositionY[i] * plane.y + m_PositionZ[i] * plane.z < m_Radius[i];
+        m_IsVisible[i] = isVisible;
     }
 
     std::vector<size_t> result;
@@ -111,15 +107,11 @@ std::vector<size_t> CullingSoa<Capacity>::TickCulling(const std::vector<DirectX:
 
     DirectX::XMVECTOR vs[6];
     frustum.GetPlanes(vs, vs + 1, vs + 2, vs + 3, vs + 4, vs + 5);
-    const DirectX::SimpleMath::Plane planes[6]
+    DirectX::SimpleMath::Plane planes[6];
+    for (size_t i = 0; i < 6; ++i)
     {
-        DirectX::SimpleMath::Plane(vs[0]),
-        DirectX::SimpleMath::Plane(vs[1]),
-        DirectX::SimpleMath::Plane(vs[2]),
-        DirectX::SimpleMath::Plane(vs[3]),
-        DirectX::SimpleMath::Plane(vs[4]),
-        DirectX::SimpleMath::Plane(vs[5])
-    };
+        planes[i] = DirectX::SimpleMath::Plane(vs[i]);
+    }
 
     using FloatBatch = xsimd::batch<float, Architecture>;
     using BoolBatch = xsimd::batch_bool<float, Architecture>;
@@ -139,7 +131,7 @@ std::vector<size_t> CullingSoa<Capacity>::TickCulling(const std::vector<DirectX:
                 dist += FloatBatch::load_aligned(m_PositionX + i) * plane.x;
                 dist += FloatBatch::load_aligned(m_PositionY + i) * plane.y;
                 dist += FloatBatch::load_aligned(m_PositionZ + i) * plane.z;
-                visible = dist < m_Radius[i] & visible;
+                visible = dist < FloatBatch::load_aligned(m_Radius + i) && visible;
             }
             visible.store_aligned(m_IsVisible + i);
         }
