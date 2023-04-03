@@ -10,7 +10,7 @@ PlaneRenderer::PlaneRenderer(ID3D11Device* device, std::shared_ptr<Constants> co
 {
 }
 
-void PlaneRenderer::Initialize(ID3D11DeviceContext* context)
+std::vector<float> PlaneRenderer::Initialize(ID3D11DeviceContext* context)
 {
 	ComPtr<ID3DBlob> blob;
 	ThrowIfFailed(D3DReadFileToBlob(L"./shader/DummyVS.cso", &blob));
@@ -23,6 +23,8 @@ void PlaneRenderer::Initialize(ID3D11DeviceContext* context)
 	hr = m_Device->CreatePixelShader(blob->GetBufferPointer(),
 		blob->GetBufferSize(), nullptr, &m_Ps);
 	ThrowIfFailed(hr);
+
+	return {};
 }
 
 void PlaneRenderer::Render(ID3D11DeviceContext* context)

@@ -30,6 +30,7 @@ namespace
 
     std::shared_ptr<Constants> g_PassConstants = nullptr;
     std::shared_ptr<std::vector<InstanceData>> g_Instances = nullptr;
+    std::shared_ptr<std::vector<float>> g_BondingRadius = nullptr;
     std::unique_ptr<Renderer> g_PlaneRender = nullptr;
     std::unique_ptr<Renderer> g_ModelRender = nullptr;
     std::unique_ptr<Camera> g_Camera = nullptr;
@@ -133,7 +134,7 @@ int main(int, char**)
          //       cnt = 0;
 	        //}
 
-            *g_Instances = g_WorldSystem->Tick(*g_Camera);
+            *g_Instances = g_WorldSystem->Tick(*g_Camera, *g_BondingRadius);
 
         	ImGui::Begin("Culling tick");
             ImGui::Text("Object count : %d \tVisible count : %d", g_WorldSystem->GetObjectCount(), g_Instances->size());
@@ -242,13 +243,14 @@ void InitWorldStreaming()
     g_WorldSystem = std::make_unique<WorldSystem>();
     g_WorldSystem->Initialize();
     g_Instances = std::make_shared<std::vector<InstanceData>>();
+    g_BondingRadius = std::make_shared<std::vector<float>>();
 
     g_PassConstants = std::make_shared<Constants>();
     g_PlaneRender = std::make_unique<PlaneRenderer>(g_pd3dDevice, g_PassConstants);
     g_PlaneRender->Initialize(g_pd3dDeviceContext);
 
     g_ModelRender = std::make_unique<ModelRenderer>(g_pd3dDevice, L"./Asset/patrick/patrick.obj", g_PassConstants, g_Instances);
-    g_ModelRender->Initialize(g_pd3dDeviceContext);
+    *g_BondingRadius = g_ModelRender->Initialize(g_pd3dDeviceContext);
 
     g_Camera = std::make_unique<Camera>();
 }

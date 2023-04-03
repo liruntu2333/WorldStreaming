@@ -17,14 +17,18 @@ ModelRenderer::ModelRenderer(ID3D11Device* device, std::filesystem::path model,
 {
 }
 
-void ModelRenderer::Initialize(ID3D11DeviceContext* context)
+std::vector<float> ModelRenderer::Initialize(ID3D11DeviceContext* context)
 {
     m_Vc0 = std::make_unique<ConstantBuffer<Constants>>(m_Device);
-    auto [mesh, tex] = AssetImporter::LoadTriangleList(m_Asset);
 
+    auto [mesh, maxLen, bondingRadius] = 
+		BuildVertices(L"./Asset/Mesh");
+	
     m_Vt0 = std::make_unique<StructuredBuffer<Vertex>>(m_Device, mesh.data(), mesh.size());
+	m_Constants->VertexPerMesh = maxLen;
 	m_Vt1 = std::make_unique<StructuredBuffer<InstanceData>>(m_Device, InstanceCapacity);
-    m_Pt1 = std::make_unique<Texture2D>(m_Device, tex);
+    m_Pt1 = std::make_unique<Texture2DArray>(m_Device, context, L"./Asset/Texture");
+	m_Pt1->CreateViews(m_Device);
 
 	ComPtr<ID3DBlob> blob;
 	ThrowIfFailed(D3DReadFileToBlob(L"./shader/SimpleVS.cso", &blob));
@@ -37,6 +41,8 @@ void ModelRenderer::Initialize(ID3D11DeviceContext* context)
 	hr = m_Device->CreatePixelShader(blob->GetBufferPointer(),
 		blob->GetBufferSize(), nullptr, &m_Ps);
 	ThrowIfFailed(hr);
+
+	return bondingRadius;
 }
 
 void ModelRenderer::Render(ID3D11DeviceContext* context)
@@ -60,7 +66,7 @@ void ModelRenderer::Render(ID3D11DeviceContext* context)
 	{
 		const auto view = m_Pt1->GetSrv();
 		context->PSSetShaderResources(0, 1, &view);
-		const auto sampler = s_CommonStates->LinearWrap();
+		const auto sampler = s_CommonStates->AnisotropicWrap();
 		context->PSSetSamplers(0, 1, &sampler);
 	}
 	const auto opaque = s_CommonStates->Opaque();
@@ -68,11 +74,48 @@ void ModelRenderer::Render(ID3D11DeviceContext* context)
 	const auto depthTest = s_CommonStates->DepthDefault();
 	context->OMSetDepthStencilState(depthTest, 0);
 
-	context->DrawInstanced(m_Vt0->m_Capacity, m_Instances->size(), 0, 0);
+	context->DrawInstanced(m_Constants->VertexPerMesh, m_Instances->size(), 0, 0);
 }
 
 void ModelRenderer::UpdateBuffer(ID3D11DeviceContext* context)
 {
 	m_Vc0->SetData(context, *m_Constants);
 	m_Vt1->SetData(context, m_Instances->data(), m_Instances->size());
+}
+
+ModelRenderer::MeshData ModelRenderer::BuildVertices(
+	std::filesystem::path folder)
+{
+	std::vector<std::vector<VertexPositionNormalTangentTexture>> vbs;
+	std::vector<float> rads;
+	for (const auto& entry : std::filesystem::directory_iterator(folder))
+	{
+		if (entry.is_regular_file())
+		{
+			auto [mesh, tex, radius] = AssetImporter::LoadTriangleList(entry.path());
+			vbs.push_back(mesh);
+			rads.push_back(radius);
+		}
+	}
+
+	const auto maxLen = std::max_element(vbs.begin(), vbs.end(),
+		[](const auto& lhs, const auto& rhs) { return lhs.size() < rhs.size(); })->size();
+
+	for (auto & vb : vbs)
+	{
+		vb.reserve(maxLen);
+		for (auto i = vb.size(); i < maxLen; ++i)
+		{
+			vb.push_back(vb.back());
+		}
+	}
+
+	std::vector<VertexPositionNormalTangentTexture> result;
+	result.reserve(vbs.size() * maxLen);
+	for (const auto & vb : vbs)
+	{
+		std::copy(vb.begin(), vb.end(), std::back_inserter(result));
+	}
+
+	return { result, maxLen, rads };
 }

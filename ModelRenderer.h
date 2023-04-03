@@ -17,11 +17,14 @@ public:
     ModelRenderer(ID3D11Device* device, std::filesystem::path model, std::shared_ptr<Constants> constants, std::shared_ptr<std::vector<InstanceData>> instances);
     ~ModelRenderer() override = default;
 
-    void Initialize(ID3D11DeviceContext* context) override;
+    std::vector<float> Initialize(ID3D11DeviceContext* context) override;
     void Render(ID3D11DeviceContext* context) override;
 
 private:
     void UpdateBuffer(ID3D11DeviceContext* context) override;
+    using MeshData = std::tuple<std::vector<VertexPositionNormalTangentTexture>, size_t, std::vector<float>>;
+    static MeshData BuildVertices(
+        std::filesystem::path folder);
 
     std::unique_ptr<DirectX::ConstantBuffer<Constants>> m_Vc0 = nullptr;
     std::unique_ptr<DirectX::StructuredBuffer<VertexPositionNormalTangentTexture>> m_Vt0 = nullptr;

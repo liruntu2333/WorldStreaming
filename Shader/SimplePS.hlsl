@@ -19,13 +19,14 @@ float4 LoadColor(uint col)
 	return float4(r, g, b, a);
 }
 
-Texture2D g_Textures : register( t0 );
-SamplerState g_LinearWrap : register( s0 );
+Texture2DArray g_Textures : register( t0 );
+SamplerState g_Sampler : register( s0 );
 
 float4 main( PixelIn pin ) : SV_TARGET
 {
 	const float3 light = float3(0.0f, 1.0f, 0.0f);
-	const float4 diffuse = g_Textures.Sample(g_LinearWrap, pin.TexCoord);
+	// sample a textur2darray
+	const float4 diffuse = g_Textures.Sample(g_Sampler, float3(pin.TexCoord, pin.MatIdx));
 	const float4 kd = LoadColor(pin.Color);
-	return kd * diffuse * saturate(dot(pin.Normal, light));
+	return diffuse * saturate(dot(light, normalize(pin.Normal)));
 }

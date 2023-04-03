@@ -365,3 +365,5 @@ FodyWeavers.xsd
 *.cso
 *.dll
 *.exe
+/Asset/Mesh
+/Asset/Texture

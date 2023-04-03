@@ -10,6 +10,10 @@ struct Constants
     float DeltaTime{};
     Matrix View;
     Matrix Proj;
+    uint32_t VertexPerMesh = 0;
+    uint32_t pad0;
+    uint32_t pad1;
+    uint32_t pad2;
 
     Constants() = default;
 };

@@ -36,25 +36,27 @@ void WorldSystem::Initialize()
     std::uniform_real_distribution disRow(0.0f, DirectX::XM_2PI);
     std::uniform_real_distribution disPitch(0.0f, DirectX::XM_2PI);
     std::uniform_real_distribution disYaw(0.0f, DirectX::XM_2PI);
-    std::uniform_real_distribution disScale(1.0f, 50.0f);
+    std::uniform_real_distribution disScale(0.1f, 0.4f);
     std::uniform_int_distribution disCol(0, 255);
+    std::uniform_int_distribution disMat(0, 31);
+    std::uniform_int_distribution disGeo(0, 11);
     for (size_t i = 0; i < SoaCapacity; ++i)
     {
         auto pos = Vector3(disX(gen), disY(gen), disZ(gen));
         auto rot = Quaternion::CreateFromYawPitchRoll(disYaw(gen), disPitch(gen), disRow(gen));
         auto scale = disScale(gen);
         uint32_t col = disCol(gen) << 24 | disCol(gen) << 16 | disCol(gen) << 8 | 255;
-        m_Objects.emplace_back(pos, rot, scale, 0, 0, col);
+        m_Objects.emplace_back(pos, rot, scale, disGeo(gen), disMat(gen), col);
     }
 }
 
-std::vector<InstanceData> WorldSystem::Tick(const Camera& camera)
+std::vector<InstanceData> WorldSystem::Tick(const Camera& camera, const std::vector<float>& rads)
 {
     std::vector<DirectX::BoundingSphere> spheres(m_Objects.size());
     for (size_t i = 0; i < m_Objects.size(); ++i)
     {
         spheres[i].Center = m_Objects[i].Position;
-        spheres[i].Radius = m_Objects[i].Scale * 0.815749228f;
+        spheres[i].Radius = m_Objects[i].Scale * rads[m_Objects[i].GeometryIndex];
     }
 
     const auto frustum = camera.GetFrustum();

@@ -1,6 +1,14 @@
 cbuffer PassConstants : register(b0)
 {
 	float4x4 g_ViewProj;
+	float3 g_EyePosition;
+	float g_DeltaTime;
+	float4x4 g_View;
+	float4x4 g_Proj;
+	uint g_VertexPerMesh;
+	uint pad0;
+	uint pad1;
+	uint pad2;
 }
 
 static const float4 g_Plane[6] =

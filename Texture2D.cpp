@@ -90,30 +90,39 @@ Texture2DArray::Texture2DArray(ID3D11Device* device, ID3D11DeviceContext* contex
 	{
 		paths.push_back(entry.path());
 	}
-	std::sort(paths.begin(), paths.end());
 	std::vector<ID3D11Texture2D*> textures;
+	textures.reserve(paths.size());
 	for (const auto& path : paths)
 	{
-		Microsoft::WRL::ComPtr<ID3D11Texture2D> texture;
+		ID3D11Texture2D* texture = nullptr;
 		const auto hr = CreateWICTextureFromFile(device, path.c_str(), 
-			reinterpret_cast<ID3D11Resource**>(texture.GetAddressOf()), nullptr);
+			reinterpret_cast<ID3D11Resource**>(&texture), nullptr);
 		ThrowIfFailed(hr);
-		textures.push_back(texture.Get());
+		textures.push_back(texture);
 	}
 
-	D3D11_TEXTURE2D_DESC desc;
-	textures[0]->GetDesc(&desc);
-	desc.ArraySize = static_cast<UINT>(textures.size());
-	desc.MipLevels = 1;
-	desc.BindFlags = D3D11_BIND_SHADER_RESOURCE;
-	const auto hr = device->CreateTexture2D(&desc, nullptr, &m_Texture);
+	D3D11_TEXTURE2D_DESC arrayDesc;
+	textures[0]->GetDesc(&arrayDesc);
+	arrayDesc.ArraySize = static_cast<UINT>(textures.size());
+	arrayDesc.MipLevels = 9;
+	arrayDesc.BindFlags = D3D11_BIND_SHADER_RESOURCE | D3D11_BIND_RENDER_TARGET;
+	arrayDesc.MiscFlags = D3D11_RESOURCE_MISC_GENERATE_MIPS;
+	const auto hr = device->CreateTexture2D(&arrayDesc, nullptr, &m_Texture);
 	ThrowIfFailed(hr);
-	for (UINT i = 0; i < desc.ArraySize; ++i)
+	for (UINT i = 0; i < arrayDesc.ArraySize; ++i)
 	{
-		context->CopySubresourceRegion(m_Texture.Get(), i, 0, 0, 0,
-			textures[i], 0, nullptr);
+		context->CopySubresourceRegion(m_Texture.Get(), 
+			D3D11CalcSubresource(0, i, arrayDesc.MipLevels),
+			0, 0, 0, textures[i], 0, nullptr);
 	}
 	m_Texture->GetDesc(&m_Desc);
+	Texture2DArray::CreateViews(device);
+	context->GenerateMips(m_Srv.Get());
+
+	for (const auto& texture : textures)
+	{
+		texture->Release();
+	}
 }
 
 void Texture2DArray::CreateViews(ID3D11Device* device)
@@ -145,17 +154,11 @@ void Texture2DArray::Load(ID3D11Device* device, ID3D11DeviceContext* context, co
 		textures.push_back(texture.Get());
 	}
 
-	D3D11_TEXTURE2D_DESC desc;
-	textures[0]->GetDesc(&desc);
-	desc.ArraySize = static_cast<UINT>(textures.size());
-	desc.MipLevels = 1;
-	desc.BindFlags = D3D11_BIND_SHADER_RESOURCE;
-	const auto hr = device->CreateTexture2D(&desc, nullptr, &m_Texture);
+	const auto hr = device->CreateTexture2D(&m_Desc, nullptr, m_Texture.ReleaseAndGetAddressOf());
 	ThrowIfFailed(hr);
-	for (UINT i = 0; i < desc.ArraySize; ++i)
+	for (UINT i = 0; i < m_Desc.ArraySize; ++i)
 	{
 		context->CopySubresourceRegion(m_Texture.Get(), i, 0, 0, 0,
 			textures[i], 0, nullptr);
 	}
-	m_Texture->GetDesc(&m_Desc);
 }

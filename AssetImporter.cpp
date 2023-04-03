@@ -21,6 +21,7 @@ AssetImporter::ModelData AssetImporter::LoadTriangleList(const std::filesystem::
 
     using Vertex = VertexPositionNormalTangentTexture;
     std::vector<Vertex> triangleList;
+    float radius = 0.0f;
 
     const auto meshCnt = scene->mNumMeshes;
     for (uint32_t i = 0; i < meshCnt; ++i)
@@ -32,6 +33,7 @@ AssetImporter::ModelData AssetImporter::LoadTriangleList(const std::filesystem::
         DirectX::BoundingSphere::CreateFromPoints(sphere, vertCnt,
             reinterpret_cast<const DirectX::XMFLOAT3*>(mesh->mVertices), sizeof(aiVector3D));
         const Vector3 offset = sphere.Center;
+        radius = sphere.Radius;
         const auto faceCnt = mesh->mNumFaces;
 
         triangleList.reserve(triangleList.size() + faceCnt * 3);
@@ -58,7 +60,7 @@ AssetImporter::ModelData AssetImporter::LoadTriangleList(const std::filesystem::
     const auto matCnt = scene->mNumMaterials;
     for (uint32_t i = 0; i < matCnt; ++i)
     {
-        const auto material = scene->mMaterials[1];
+        const auto material = scene->mMaterials[i];
         aiString texPathStr;
         material->GetTexture(aiTextureType_DIFFUSE, 0, &texPathStr);
         if (texPathStr.length != 0)
@@ -68,5 +70,5 @@ AssetImporter::ModelData AssetImporter::LoadTriangleList(const std::filesystem::
         }
     }
 
-    return {triangleList, texPath };
+    return {triangleList, texPath, radius };
 }

@@ -21,7 +21,7 @@ public:
     ~WorldSystem() = default;
 
     void Initialize();
-    std::vector<InstanceData> Tick(const Camera& camera);
+    std::vector<InstanceData> Tick(const Camera& camera, const std::vector<float>& rads);
 
     [[nodiscard]] size_t GetObjectCount() const;
 
