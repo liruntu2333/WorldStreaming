@@ -42,6 +42,7 @@ void DebugRenderer::Render(ID3D11DeviceContext* context)
 
     int visibleDepth = std::log2(m_BsTree.size()) - 1;
     visibleDepth = visibleDepth < 0 ? 0 : visibleDepth;
+    //visibleDepth = 0;
     std::queue<uint32_t> q;
     if (!m_BsTree.empty()) q.push(0);
     int depth = 0;
@@ -54,16 +55,17 @@ void DebugRenderer::Render(ID3D11DeviceContext* context)
             const auto nodeIdx = q.front();
             auto& node = m_BsTree[nodeIdx];
             q.pop();
-            if (depth >= visibleDepth)
-            {
-                auto world = Matrix::CreateScale(node.Bound.Radius) * Matrix::CreateTranslation(node.Bound.Center);
-                m_SphereGeo->Draw(world, view, proj, color, nullptr, true);
-            }
+
 
             if (node.ObjectCount == 0)
             {
                 q.push(nodeIdx + 1);
                 q.push(node.SecondChildOffset);
+            }
+            else
+            {
+                auto world = Matrix::CreateScale(node.Bound.Radius) * Matrix::CreateTranslation(node.Bound.Center);
+                m_SphereGeo->Draw(world, view, proj, color, nullptr, true);
             }
         }
         ++depth;

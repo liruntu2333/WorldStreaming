@@ -12,7 +12,7 @@ struct StaticObject;
 class Camera;
 class Renderer;
 
-constexpr uint32_t SOA_CAPACITY = 1 << 12;
+constexpr uint32_t SOA_CAPACITY = 1 << 13;
 
 class WorldSystem
 {

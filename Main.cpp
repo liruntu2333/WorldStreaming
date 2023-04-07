@@ -114,28 +114,26 @@ int main(int, char**)
 
         UpdateConstants(io);
 
-        // tick particle system
-        {
-            *g_Instances = g_WorldSystem->Tick(*g_Camera);
+        *g_Instances = g_WorldSystem->Tick(*g_Camera);
 
-        	ImGui::Begin("Culling tick");
-            ImGui::Text("Object count : %d \tVisible count : %d", g_WorldSystem->GetObjectCount(), g_Instances->size());
+        ImGui::Begin("Culling tick");
+        ImGui::Text("Object count : %d\tVisible count : %d\tFrame rate : %2.1f FPS", 
+            g_WorldSystem->GetObjectCount(), g_Instances->size(), io.Framerate);
+        static int splitMethod = 0;
+        static int objectInNode = 128;
+        static bool visualizeBs = false;
+        bool changed = false;
+        changed |= ImGui::DragInt("Object in node", &objectInNode, 1, 1, INT32_MAX);
+        changed |= ImGui::RadioButton("Middle", &splitMethod, 0);
+        ImGui::SameLine();
+        changed |= ImGui::RadioButton("Equal Count", &splitMethod, 1);
+        ImGui::SameLine();
+        changed |= ImGui::RadioButton("Volume Heuristic", &splitMethod, 2);
+        if (ImGui::Button("Visualize Bounding")) visualizeBs = !visualizeBs;
+        if (changed)
+            g_WorldSystem->GenerateBvh(objectInNode, static_cast<BvhTree::SpitMethod>(splitMethod));
 
-            static int splitMethod = 0;
-            static int objectInNode = 1;
-            bool changed = false;
-            changed |= ImGui::DragInt("Object in node", &objectInNode, 1, 1, 1024);
-            changed |= ImGui::RadioButton("Middle", &splitMethod, 0);
-            ImGui::SameLine();
-            changed |= ImGui::RadioButton("Equal Count", &splitMethod, 1);
-            ImGui::SameLine();
-            changed |= ImGui::RadioButton("Volume Heuristic", &splitMethod, 2);
-            if (changed)
-            {
-                g_WorldSystem->GenerateBvh(objectInNode, static_cast<BvhTree::SpitMethod>(splitMethod));
-            }
-            ImGui::End();
-        }
+        ImGui::End();
 
         // Rendering
         ImGui::Render();
@@ -148,8 +146,7 @@ int main(int, char**)
         g_Camera->SetViewPort(g_pd3dDeviceContext);
         g_PlaneRender->Render(g_pd3dDeviceContext);
         g_ModelRender->Render(g_pd3dDeviceContext);
-
-        g_DebugRender->Render(g_pd3dDeviceContext);
+        if (visualizeBs) g_DebugRender->Render(g_pd3dDeviceContext);
 
         ImGui_ImplDX11_RenderDrawData(ImGui::GetDrawData());
 

@@ -24,7 +24,7 @@ namespace DirectX
 
 namespace 
 {
-    constexpr uint32_t BVH_NODE_CAP = 1;
+    constexpr uint32_t BVH_NODE_CAP = 128;
     constexpr BvhTree::SpitMethod BVH_METHOD = BvhTree::SpitMethod::Middle;
 
     std::vector<StaticObject> GenerateRandom()
@@ -79,9 +79,9 @@ std::vector<Instance> WorldSystem::Tick(const Camera& camera) const
         spheres[i].Radius = m_Objects[visible[i]].Scale;
     }
 
-    const auto visible2 = m_Soa->TickCulling<xsimd::avx2>(spheres, frustum);
+    //const auto visible2 = m_Soa->TickCulling<xsimd::avx2>(spheres, frustum);
     //const auto visible2 = TickCulling(spheres, frustum);
-    //const auto visible2 = m_Soa->TickCulling(spheres, frustum);
+    const auto visible2 = m_Soa->TickCulling(spheres, frustum);
 
     for (uint32_t i = 0; i < visible2.size(); ++i)
     {
