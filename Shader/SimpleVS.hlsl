@@ -6,7 +6,7 @@ struct Vertex
 	float2 TexCoord;
 };
 
-struct InstanceData
+struct Instance
 {
 	float4x4 World;
 	uint GeoIdx;
@@ -41,13 +41,13 @@ cbuffer PassConstants : register( b0 )
 }
 
 StructuredBuffer<Vertex> g_Vertices : register( t0 );
-StructuredBuffer<InstanceData> g_Instances : register( t1 );
+StructuredBuffer<Instance> g_Instances : register( t1 );
 
 VertexOut main(uint vi : SV_VertexID, uint ii : SV_InstanceID)
 {
 	VertexOut vout;
 
-	const InstanceData inst = g_Instances[ii];
+	const Instance inst = g_Instances[ii];
 	Vertex vert = g_Vertices[inst.GeoIdx * g_VertexPerMesh + vi];
 
 	float4 posW = mul(float4(vert.Position, 1.0f), inst.World);

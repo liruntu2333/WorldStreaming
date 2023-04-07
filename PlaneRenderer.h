@@ -16,7 +16,7 @@ public:
     PlaneRenderer(PlaneRenderer&&) = delete;
     PlaneRenderer& operator=(PlaneRenderer&&) = delete;
 
-    std::vector<float> Initialize(ID3D11DeviceContext* context) override;
+    void Initialize(ID3D11DeviceContext* context) override;
     void Render(ID3D11DeviceContext* context) override;
     void UpdateBuffer(ID3D11DeviceContext* context) override;
 

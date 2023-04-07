@@ -5,13 +5,14 @@
 #include <directxtk/SimpleMath.h>
 
 #include "CullingSoa.h"
+#include "BvhTree.h"
 
-struct InstanceData;
+struct Instance;
 struct StaticObject;
 class Camera;
 class Renderer;
 
-constexpr size_t SoaCapacity = 1 << 13;
+constexpr uint32_t SOA_CAPACITY = 1 << 12;
 
 class WorldSystem
 {
@@ -21,13 +22,16 @@ public:
     ~WorldSystem() = default;
 
     void Initialize();
-    std::vector<InstanceData> Tick(const Camera& camera, const std::vector<float>& rads);
+    [[nodiscard]] std::vector<Instance> Tick(const Camera& camera) const;
 
-    [[nodiscard]] size_t GetObjectCount() const;
+    [[nodiscard]] uint32_t GetObjectCount() const;
+    [[nodiscard]] const std::vector<BvhLinearNode>& GetBvhTree() const;
+    void GenerateBvh(uint32_t objInNode, BvhTree::SpitMethod method);
 
 private:
 
     std::vector<StaticObject> m_Objects{};
-    std::unique_ptr<CullingSoa<SoaCapacity>> m_Soa = nullptr;
+    std::unique_ptr<CullingSoa<SOA_CAPACITY>> m_Soa = nullptr;
+    std::unique_ptr<BvhTree> m_Bvh = nullptr;
 };
 

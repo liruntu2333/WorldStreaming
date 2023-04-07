@@ -25,8 +25,8 @@ SamplerState g_Sampler : register( s0 );
 float4 main( PixelIn pin ) : SV_TARGET
 {
 	const float3 light = float3(0.0f, 1.0f, 0.0f);
-	// sample a textur2darray
 	const float4 diffuse = g_Textures.Sample(g_Sampler, float3(pin.TexCoord, pin.MatIdx));
 	const float4 kd = LoadColor(pin.Color);
-	return diffuse * saturate(dot(light, normalize(pin.Normal)));
+	float4 color = diffuse * (saturate(dot(light, normalize(pin.Normal))) + float4(0.14f, 0.14f, 0.14f, 1.0f));
+	return float4(color.xyz, 1.0f);
 }

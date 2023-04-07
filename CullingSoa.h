@@ -2,7 +2,7 @@
 #include "AlignedVector.h"
 #include <directxtk/SimpleMath.h>
 
-template <size_t Capacity>
+template <uint32_t Capacity>
 class CullingSoa
 {
 public:
@@ -15,25 +15,29 @@ public:
     CullingSoa& operator=(CullingSoa&&) = delete;
 
     template <class Architecture>
-    std::vector<size_t> TickCulling(const std::vector<DirectX::BoundingSphere>& data,
+    std::vector<uint32_t> TickCulling(const std::vector<DirectX::BoundingSphere>& data,
         const DirectX::BoundingFrustum& frustum);
 
     // scalar version
-    std::vector<size_t> TickCulling(const std::vector<DirectX::BoundingSphere>& data,
+    std::vector<uint32_t> TickCulling(const std::vector<DirectX::BoundingSphere>& data,
         const DirectX::BoundingFrustum& frustum);
 
 private:
     void Clear();
     void Push(const DirectX::BoundingSphere& sphere);
-    void Push(const std::vector<DirectX::BoundingSphere>& data);
+    void Push(const std::vector<DirectX::BoundingSphere>& spheres);
 
-    static constexpr size_t FloatCount = 4;
-    static constexpr size_t BoolCount = 1;
-    static constexpr size_t Alignment = xsimd::avx2::alignment(); // bigger alignment for new arch
+    [[nodiscard]] std::vector<uint32_t> ComputeScalar(const DirectX::BoundingFrustum& frustum) const;
+    template <class Architecture>
+    [[nodiscard]] std::vector<uint32_t> ComputeVector(const DirectX::BoundingFrustum& frustum) const;
 
-    AlignedVector<float, Capacity, Alignment> m_FloatChunk;
-    AlignedVector<bool, Capacity, Alignment> m_BoolChunk;
-    size_t m_Size = 0;
+    static constexpr uint32_t NFloatField = 4;
+    static constexpr uint32_t NBoolField = 1;
+    static constexpr uint32_t Alignment = xsimd::avx2::alignment(); // bigger alignment for new arch
+
+    AlignedVector<float, Capacity, NFloatField, Alignment> m_FloatChunk;
+    AlignedVector<bool, Capacity, NBoolField, Alignment> m_BoolChunk;
+    uint32_t m_Size = 0;
 
     float* const m_PositionX;
     float* const m_PositionY;
@@ -42,13 +46,13 @@ private:
     bool*  const m_IsVisible;
 };
 
-template <size_t Capacity>
-CullingSoa<Capacity>::CullingSoa() : m_FloatChunk(FloatCount), m_BoolChunk(BoolCount),
+template <uint32_t Capacity>
+CullingSoa<Capacity>::CullingSoa() : m_FloatChunk(), m_BoolChunk(),
     m_PositionX(m_FloatChunk[0]), m_PositionY(m_FloatChunk[1]), m_PositionZ(m_FloatChunk[2]), m_Radius(m_FloatChunk[3]), m_IsVisible(m_BoolChunk[0])
 {
 }
 
-template <size_t Capacity>
+template <uint32_t Capacity>
 void CullingSoa<Capacity>::Push(const DirectX::BoundingSphere& sphere)
 {
     if (m_Size >= Capacity) return;
@@ -60,28 +64,24 @@ void CullingSoa<Capacity>::Push(const DirectX::BoundingSphere& sphere)
     m_Size++;
 }
 
-template <size_t Capacity>
-void CullingSoa<Capacity>::Push(const std::vector<DirectX::BoundingSphere>& data)
+template <uint32_t Capacity>
+void CullingSoa<Capacity>::Push(const std::vector<DirectX::BoundingSphere>& spheres)
 {
-    for (const auto& sphere : data) Push(sphere);
+    for (const auto& sphere : spheres) Push(sphere);
 }
 
-template <size_t Capacity>
-std::vector<size_t> CullingSoa<Capacity>::TickCulling(const std::vector<DirectX::BoundingSphere>& data,
-    const DirectX::BoundingFrustum& frustum)
+template <uint32_t Capacity>
+std::vector<uint32_t> CullingSoa<Capacity>::ComputeScalar(const DirectX::BoundingFrustum& frustum) const
 {
-    Clear();
-    Push(data);
-
     DirectX::XMVECTOR vs[6];
     frustum.GetPlanes(vs, vs + 1, vs + 2, vs + 3, vs + 4, vs + 5);
     DirectX::SimpleMath::Plane planes[6];
-    for (size_t i = 0; i < 6; ++i) 
+    for (uint32_t i = 0; i < 6; ++i)
     {
         planes[i] = DirectX::SimpleMath::Plane(vs[i]);
     }
 
-    for (size_t i = 0; i < m_Size; ++i)
+    for (uint32_t i = 0; i < m_Size; ++i)
     {
         bool isVisible = true;
         for (const auto& plane : planes)
@@ -89,39 +89,35 @@ std::vector<size_t> CullingSoa<Capacity>::TickCulling(const std::vector<DirectX:
         m_IsVisible[i] = isVisible;
     }
 
-    std::vector<size_t> result;
-    for (size_t i = 0; i < m_Size; ++i)
+    std::vector<uint32_t> result;
+    for (uint32_t i = 0; i < m_Size; ++i)
     {
         if (m_IsVisible[i]) result.push_back(i);
     }
     return result;
 }
 
-template <size_t Capacity>
+template <uint32_t Capacity>
 template <class Architecture>
-std::vector<size_t> CullingSoa<Capacity>::TickCulling(const std::vector<DirectX::BoundingSphere>& data,
-    const DirectX::BoundingFrustum& frustum)
+std::vector<uint32_t> CullingSoa<Capacity>::ComputeVector(const DirectX::BoundingFrustum& frustum) const
 {
-    Clear();
-    Push(data);
-
     DirectX::XMVECTOR vs[6];
     frustum.GetPlanes(vs, vs + 1, vs + 2, vs + 3, vs + 4, vs + 5);
     DirectX::SimpleMath::Plane planes[6];
-    for (size_t i = 0; i < 6; ++i)
+    for (uint32_t i = 0; i < 6; ++i)
     {
         planes[i] = DirectX::SimpleMath::Plane(vs[i]);
     }
 
     using FloatBatch = xsimd::batch<float, Architecture>;
     using BoolBatch = xsimd::batch_bool<float, Architecture>;
-    const size_t stride = FloatBatch::size;
+    const uint32_t stride = FloatBatch::size;
 
-    auto dispatch = [stride, &planes, this](size_t from, size_t length)
+    auto dispatch = [stride, &planes, this](uint32_t from, uint32_t length)
     {
-        const size_t alignedSize = length - length % stride;
+        const uint32_t alignedSize = length - length % stride;
 
-        for (size_t i = from; i < from + alignedSize; i += stride)
+        for (uint32_t i = from; i < from + alignedSize; i += stride)
         {
             BoolBatch visible(true);
             for (const auto& plane : planes)
@@ -131,12 +127,12 @@ std::vector<size_t> CullingSoa<Capacity>::TickCulling(const std::vector<DirectX:
                 dist += FloatBatch::load_aligned(m_PositionX + i) * plane.x;
                 dist += FloatBatch::load_aligned(m_PositionY + i) * plane.y;
                 dist += FloatBatch::load_aligned(m_PositionZ + i) * plane.z;
-                visible = dist < FloatBatch::load_aligned(m_Radius + i) && visible;
+                visible = visible && dist < FloatBatch::load_aligned(m_Radius + i);
             }
             visible.store_aligned(m_IsVisible + i);
         }
 
-        for (size_t i = from + alignedSize; i < from + length; ++i)
+        for (uint32_t i = from + alignedSize; i < from + length; ++i)
         {
             bool visible = true;
             for (const auto& plane : planes)
@@ -155,20 +151,42 @@ std::vector<size_t> CullingSoa<Capacity>::TickCulling(const std::vector<DirectX:
     //    futures.emplace_back(
     //        pool->enqueue(dispatch, i * groupLen, groupLen));
 
-    //for (size_t i = 0; i < threadCount; ++i)
+    //for (uint32_t i = 0; i < threadCount; ++i)
     //    futures[i].wait();
 
     dispatch(0, m_Size);
 
-    std::vector<size_t> visible;
-    for (size_t i = 0; i < m_Size; ++i)
-        if (m_IsVisible[i]) 
+    std::vector<uint32_t> visible;
+    for (uint32_t i = 0; i < m_Size; ++i)
+        if (m_IsVisible[i])
             visible.push_back(i);
 
     return visible;
+
 }
 
-template <size_t Capacity>
+template <uint32_t Capacity>
+std::vector<uint32_t> CullingSoa<Capacity>::TickCulling(const std::vector<DirectX::BoundingSphere>& data,
+    const DirectX::BoundingFrustum& frustum)
+{
+    Clear();
+    Push(data);
+
+    return ComputeScalar(frustum);
+}
+
+template <uint32_t Capacity>
+template <class Architecture>
+std::vector<uint32_t> CullingSoa<Capacity>::TickCulling(const std::vector<DirectX::BoundingSphere>& data,
+    const DirectX::BoundingFrustum& frustum)
+{
+    Clear();
+    Push(data);
+
+    return ComputeVector<Architecture>(frustum);
+}
+
+template <uint32_t Capacity>
 void CullingSoa<Capacity>::Clear()
 {
     m_Size = 0;

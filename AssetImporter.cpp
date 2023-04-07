@@ -46,7 +46,7 @@ AssetImporter::ModelData AssetImporter::LoadTriangleList(const std::filesystem::
                 const auto idx = face.mIndices[k];
 
                 Vector3 pos(mesh->mVertices[idx].x, mesh->mVertices[idx].y, mesh->mVertices[idx].z);
-                pos -= offset;
+                pos = (pos - offset) / radius;
                 Vector3 norm(mesh->mNormals[idx].x, mesh->mNormals[idx].y, mesh->mNormals[idx].z);
                 Vector3 tan(mesh->mTangents[idx].x, mesh->mTangents[idx].y, mesh->mTangents[idx].z);
                 Vector2 texCoord(mesh->mTextureCoords[0][idx].x, mesh->mTextureCoords[0][idx].y);

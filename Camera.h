@@ -19,7 +19,7 @@ public:
 
 private:
 
-    DirectX::SimpleMath::Vector3 m_Position{0.0f, 200.0f, -10.0f};
+    DirectX::SimpleMath::Vector3 m_Position{0.0f, 0.0f, -7500.0f};
     DirectX::SimpleMath::Vector3 m_Rotation; // row pitch yaw
     DirectX::SimpleMath::Vector3 m_Forward;
     DirectX::SimpleMath::Vector3 m_Right;
@@ -27,6 +27,6 @@ private:
     float m_Fov = DirectX::XM_PIDIV4;
     float m_AspectRatio = 4.0f / 3.0f;
     float m_NearPlane = 1.0f;
-    float m_FarPlane = 10000.0f;
+    float m_FarPlane = 20000.0f;
 };
 

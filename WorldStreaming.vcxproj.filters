@@ -12,6 +12,8 @@
     <ClCompile Include="AssetImporter.cpp" />
     <ClCompile Include="ModelRenderer.cpp" />
     <ClCompile Include="WorldSystem.cpp" />
+    <ClCompile Include="BvhTree.cpp" />
+    <ClCompile Include="DebugRenderer.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="AlignedVector.h" />
@@ -33,7 +35,9 @@
     <ClInclude Include="ModelRenderer.h" />
     <ClInclude Include="WorldSystem.h" />
     <ClInclude Include="StaticObject.h" />
-    <ClInclude Include="InstanceData.h" />
+    <ClInclude Include="Instance.h" />
+    <ClInclude Include="BvhTree.h" />
+    <ClInclude Include="DebugRenderer.h" />
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Shader">

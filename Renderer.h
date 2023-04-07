@@ -14,7 +14,7 @@ public:
     Renderer(Renderer&&) = delete;
     Renderer& operator=(Renderer&&) = delete;
 
-    virtual std::vector<float> Initialize(ID3D11DeviceContext* context) = 0;
+    virtual void Initialize(ID3D11DeviceContext* context) = 0;
     virtual void Render(ID3D11DeviceContext* context) = 0;
 
     static std::unique_ptr<DirectX::CommonStates> s_CommonStates;

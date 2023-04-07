@@ -13,8 +13,9 @@
 #include "PlaneRenderer.h"
 #include "ModelRenderer.h"
 #include "Camera.h"
-#include "InstanceData.h"
+#include "Instance.h"
 #include "StaticObject.h"
+#include "DebugRenderer.h"
 
 // Data
 static ID3D11Device*            g_pd3dDevice = NULL;
@@ -29,10 +30,10 @@ namespace
 	std::unique_ptr<DirectX::Texture2D> g_depthStencil = nullptr;
 
     std::shared_ptr<Constants> g_PassConstants = nullptr;
-    std::shared_ptr<std::vector<InstanceData>> g_Instances = nullptr;
-    std::shared_ptr<std::vector<float>> g_BondingRadius = nullptr;
+    std::shared_ptr<std::vector<Instance>> g_Instances = nullptr;
     std::unique_ptr<Renderer> g_PlaneRender = nullptr;
     std::unique_ptr<Renderer> g_ModelRender = nullptr;
+    std::unique_ptr<Renderer> g_DebugRender = nullptr;
     std::unique_ptr<Camera> g_Camera = nullptr;
     std::unique_ptr<WorldSystem> g_WorldSystem = nullptr;
 }
@@ -115,29 +116,24 @@ int main(int, char**)
 
         // tick particle system
         {
-        	//static int cnt = 0;
-         //   static float timeSum = 0.0;
-         //   static float timeAvg = 0.0;
-
-        	//auto start = std::chrono::steady_clock::now();
-        	//{
-         //       auto soaRes = g_CullingSoa->TickCulling<Architecture>(g_BsData, g_Camera->GetFrustum());
-        	//}
-         //   auto end = std::chrono::steady_clock::now();
-         //   const auto duration = std::chrono::duration_cast<std::chrono::microseconds>((end - start));
-         //   timeSum += duration.count();
-
-	        //if (++cnt > 100)
-	        //{
-         //       timeAvg = timeSum / static_cast<float>(cnt);
-         //       timeSum = 0.0;
-         //       cnt = 0;
-	        //}
-
-            *g_Instances = g_WorldSystem->Tick(*g_Camera, *g_BondingRadius);
+            *g_Instances = g_WorldSystem->Tick(*g_Camera);
 
         	ImGui::Begin("Culling tick");
             ImGui::Text("Object count : %d \tVisible count : %d", g_WorldSystem->GetObjectCount(), g_Instances->size());
+
+            static int splitMethod = 0;
+            static int objectInNode = 1;
+            bool changed = false;
+            changed |= ImGui::DragInt("Object in node", &objectInNode, 1, 1, 1024);
+            changed |= ImGui::RadioButton("Middle", &splitMethod, 0);
+            ImGui::SameLine();
+            changed |= ImGui::RadioButton("Equal Count", &splitMethod, 1);
+            ImGui::SameLine();
+            changed |= ImGui::RadioButton("Volume Heuristic", &splitMethod, 2);
+            if (changed)
+            {
+                g_WorldSystem->GenerateBvh(objectInNode, static_cast<BvhTree::SpitMethod>(splitMethod));
+            }
             ImGui::End();
         }
 
@@ -152,6 +148,8 @@ int main(int, char**)
         g_Camera->SetViewPort(g_pd3dDeviceContext);
         g_PlaneRender->Render(g_pd3dDeviceContext);
         g_ModelRender->Render(g_pd3dDeviceContext);
+
+        g_DebugRender->Render(g_pd3dDeviceContext);
 
         ImGui_ImplDX11_RenderDrawData(ImGui::GetDrawData());
 
@@ -242,15 +240,17 @@ void InitWorldStreaming()
 
     g_WorldSystem = std::make_unique<WorldSystem>();
     g_WorldSystem->Initialize();
-    g_Instances = std::make_shared<std::vector<InstanceData>>();
-    g_BondingRadius = std::make_shared<std::vector<float>>();
+    g_Instances = std::make_shared<std::vector<Instance>>();
 
     g_PassConstants = std::make_shared<Constants>();
     g_PlaneRender = std::make_unique<PlaneRenderer>(g_pd3dDevice, g_PassConstants);
     g_PlaneRender->Initialize(g_pd3dDeviceContext);
 
     g_ModelRender = std::make_unique<ModelRenderer>(g_pd3dDevice, L"./Asset/patrick/patrick.obj", g_PassConstants, g_Instances);
-    *g_BondingRadius = g_ModelRender->Initialize(g_pd3dDeviceContext);
+    g_ModelRender->Initialize(g_pd3dDeviceContext);
+
+    g_DebugRender = std::make_unique<DebugRenderer>(g_pd3dDevice, g_PassConstants, g_WorldSystem->GetBvhTree());
+    g_DebugRender->Initialize(g_pd3dDeviceContext);
 
     g_Camera = std::make_unique<Camera>();
 }
