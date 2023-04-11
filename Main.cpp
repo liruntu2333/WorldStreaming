@@ -1,5 +1,5 @@
 // Dear ImGui: standalone example application for DirectX 11
-// If you are new to Dear ImGui, read documentation from the docs/ folder + read the top of imgui.cpp.
+// If you are new to Dear ImGui, read documentation from the docs/ dir + read the top of imgui.cpp.
 // Read online: https://github.com/ocornut/imgui/tree/master/docs
 
 
@@ -114,11 +114,26 @@ int main(int, char**)
 
         UpdateConstants(io);
 
+        static int loopCnt = 0;
+        static float timeSum = 0.0f;
+        static float timeAvg = 0.0f;
+
+        auto begin = std::chrono::steady_clock::now();
         *g_Instances = g_WorldSystem->Tick(*g_Camera);
+        auto end = std::chrono::steady_clock::now();
+
+        timeSum += std::chrono::duration_cast<std::chrono::microseconds>(end - begin).count();
+
+        if (++loopCnt >= 1000)
+        {
+            timeAvg = timeSum / loopCnt;
+            loopCnt = 0;
+            timeSum = 0.0f;
+        }
 
         ImGui::Begin("Culling tick");
-        ImGui::Text("Object count : %d\tVisible count : %d\tFrame rate : %2.1f FPS", 
-            g_WorldSystem->GetObjectCount(), g_Instances->size(), io.Framerate);
+        ImGui::Text("Object count : %d Visible count : %d Culling avg time : %2.0fus Frame rate : %2.0f FPS", 
+            g_WorldSystem->GetObjectCount(), g_Instances->size(), timeAvg, io.Framerate);
         static int splitMethod = 0;
         static int objectInNode = 128;
         static bool visualizeBs = false;
@@ -129,9 +144,9 @@ int main(int, char**)
         changed |= ImGui::RadioButton("Equal Count", &splitMethod, 1);
         ImGui::SameLine();
         changed |= ImGui::RadioButton("Volume Heuristic", &splitMethod, 2);
-        if (ImGui::Button("Visualize Bounding")) visualizeBs = !visualizeBs;
         if (changed)
             g_WorldSystem->GenerateBvh(objectInNode, static_cast<BvhTree::SpitMethod>(splitMethod));
+        if (ImGui::Button("Visualize Bounding")) visualizeBs = !visualizeBs;
 
         ImGui::End();
 
@@ -150,8 +165,8 @@ int main(int, char**)
 
         ImGui_ImplDX11_RenderDrawData(ImGui::GetDrawData());
 
-        g_pSwapChain->Present(1, 0); // Present with vsync
-        //g_pSwapChain->Present(0, 0); // Present without vsync
+        //g_pSwapChain->Present(1, 0); // Present with vsync
+        g_pSwapChain->Present(0, 0); // Present without vsync
     }
 
     // Cleanup

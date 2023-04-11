@@ -3,19 +3,20 @@
 #include "AssetImporter.h"
 #include "VertexPositionNormalTangentTexture.h"
 #include <d3dcompiler.h>
+#include <numeric>
+
 #include "Instance.h"
 
 #include <directxtk/GeometricPrimitive.h>
 
-using Vertex = VertexPositionNormalTangentTexture;
 using namespace DirectX;
 using Microsoft::WRL::ComPtr;
 
 constexpr size_t InstanceCapacity = 1 << 13;
 
 ModelRenderer::ModelRenderer(ID3D11Device* device, std::filesystem::path model, 
-    std::shared_ptr<Constants> constants, std::shared_ptr<std::vector<Instance>> instances) :
-    Renderer(device), m_Constants(std::move(constants)), m_Instances(std::move(instances)), m_Asset(std::move(model))
+                             std::shared_ptr<Constants> constants, std::shared_ptr<std::vector<Instance>> instances) :
+    Renderer(device), m_Constants(std::move(constants)), m_Instances(std::move(instances)), m_AssetDir(std::move(model))
 {
 }
 
@@ -23,11 +24,11 @@ void ModelRenderer::Initialize(ID3D11DeviceContext* context)
 {
     m_Vc0 = std::make_unique<ConstantBuffer<Constants>>(m_Device);
 
-    auto [mesh, maxLen, bondingRadius] = 
-		BuildVertices(L"./Asset/Mesh");
-	
-    m_Vt0 = std::make_unique<StructuredBuffer<Vertex>>(m_Device, mesh.data(), mesh.size());
-	m_Constants->VertexPerMesh = maxLen;
+    auto [meshes, textures] = LoadAssets(m_AssetDir);
+	m_MeshLib = std::move(meshes);
+	m_TexLib = std::move(textures);
+
+	m_Vt0 = MergeVert(context, m_MeshStats);
 	m_Vt1 = std::make_unique<StructuredBuffer<Instance>>(m_Device, InstanceCapacity);
     m_Pt1 = std::make_unique<Texture2DArray>(m_Device, context, L"./Asset/Texture");
 	m_Pt1->CreateViews(m_Device);
@@ -84,39 +85,74 @@ void ModelRenderer::UpdateBuffer(ID3D11DeviceContext* context)
 	m_Vt1->SetData(context, m_Instances->data(), m_Instances->size());
 }
 
-ModelRenderer::MeshData ModelRenderer::BuildVertices(
-	std::filesystem::path folder)
+std::pair<ModelRenderer::MeshLib, ModelRenderer::TexLib> ModelRenderer::LoadAssets(
+	const std::filesystem::path& dir)
 {
-	std::vector<std::vector<VertexPositionNormalTangentTexture>> vbs;
-	std::vector<float> rads;
-	for (const auto& entry : std::filesystem::directory_iterator(folder))
+	for (const auto& entry : std::filesystem::directory_iterator(dir))
 	{
 		if (entry.is_regular_file())
 		{
-			auto [mesh, tex, radius] = AssetImporter::LoadTriangleList(entry.path());
-			vbs.push_back(mesh);
-			rads.push_back(radius);
+			std::vector<Vertex> vb;
+			AssetImporter::ModelData model = AssetImporter::LoadAsset(entry.path());
+
+			for (const auto & mesh : model.Meshes)
+			{
+				std::copy(mesh.Vertices.begin(), mesh.Vertices.end(), std::back_inserter(vb));
+			}
 		}
 	}
+}
 
-	const auto maxLen = std::max_element(vbs.begin(), vbs.end(),
-		[](const auto& lhs, const auto& rhs) { return lhs.size() < rhs.size(); })->size();
-
-	for (auto & vb : vbs)
+std::unique_ptr<StructuredBuffer<ModelRenderer::Vertex>> ModelRenderer::MergeVert(ID3D11DeviceContext* context, MeshStats& stats)
+{
+	stats.clear();
+	std::vector<Vertex> mergedVert;
+	for (const auto & mesh : m_MeshLib)
 	{
-		vb.reserve(maxLen);
-		for (auto i = vb.size(); i < maxLen; ++i)
+		stats.push_back(mesh.size());
+	}
+
+	const auto meshCnt = scene->mNumMeshes;
+	for (uint32_t i = 0; i < meshCnt; ++i)
+	{
+		const aiMesh* mesh = scene->mMeshes[i];
+
+		const auto vertCnt = mesh->mNumVertices;
+		DirectX::BoundingSphere sphere;
+		DirectX::BoundingSphere::CreateFromPoints(sphere, vertCnt,
+												  reinterpret_cast<const DirectX::XMFLOAT3*>(mesh->mVertices), sizeof(aiVector3D));
+		const Vector3 offset = sphere.Center;
+		const float radius = sphere.Radius;
+		const auto faceCnt = mesh->mNumFaces;
+
+		triangleList.reserve(triangleList.size() + faceCnt * 3);
+
+		for (uint32_t j = 0; j < faceCnt; ++j)
 		{
-			vb.push_back(vb.back());
+			const aiFace& face = mesh->mFaces[j];
+			for (uint32_t k = 0; k < 3; ++k)
+			{
+				const auto idx = face.mIndices[k];
+
+				Vector3 pos(mesh->mVertices[idx].x, mesh->mVertices[idx].y, mesh->mVertices[idx].z);
+				pos = (pos - offset) / radius;
+				Vector3 norm(mesh->mNormals[idx].x, mesh->mNormals[idx].y, mesh->mNormals[idx].z);
+				Vector3 tan(mesh->mTangents[idx].x, mesh->mTangents[idx].y, mesh->mTangents[idx].z);
+				Vector2 texCoord(mesh->mTextureCoords[0][idx].x, mesh->mTextureCoords[0][idx].y);
+
+				triangleList.emplace_back(pos, norm, tan, texCoord);
+			}
 		}
 	}
 
-	std::vector<VertexPositionNormalTangentTexture> result;
-	result.reserve(vbs.size() * maxLen);
-	for (const auto & vb : vbs)
+	const uint32_t vertMax = *std::max_element(stats.begin(), stats.end());
+	for (const auto& mesh : m_MeshLib)
 	{
-		std::copy(vb.begin(), vb.end(), std::back_inserter(result));
+		mergedVert.insert(mergedVert.end(), mesh.begin(), mesh.end());
+		Vertex back = mergedVert.back();
+		for (uint32_t i = mesh.size(); i < vertMax; ++i)
+			mergedVert.push_back(back);
 	}
 
-	return { result, maxLen, rads };
+	return std::make_unique<StructuredBuffer<Vertex>>(m_Device, mergedVert.data(), mergedVert.size());
 }

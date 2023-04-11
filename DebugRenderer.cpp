@@ -40,7 +40,7 @@ void DebugRenderer::Render(ID3D11DeviceContext* context)
     const auto view = m_Constants->View.Transpose();
     const auto proj = m_Constants->Proj.Transpose();
 
-    int visibleDepth = std::log2(m_BsTree.size()) - 1;
+    int visibleDepth = std::log2(m_BsTree.size());
     visibleDepth = visibleDepth < 0 ? 0 : visibleDepth;
     //visibleDepth = 0;
     std::queue<uint32_t> q;

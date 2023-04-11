@@ -46,11 +46,11 @@ namespace DirectX
 	class Texture2DArray : public Texture2D
 	{
 	public:
-		Texture2DArray(ID3D11Device* device, ID3D11DeviceContext* context, const std::filesystem::path& folder);
+		Texture2DArray(ID3D11Device* device, ID3D11DeviceContext* context, const std::filesystem::path& dir);
 		~Texture2DArray() override = default;
 
 		void CreateViews(ID3D11Device* device) override;
-		void Load(ID3D11Device* device, ID3D11DeviceContext* context, const std::filesystem::path& folder) override;
+		void Load(ID3D11Device* device, ID3D11DeviceContext* context, const std::filesystem::path& dir) override;
 	};
 }
 

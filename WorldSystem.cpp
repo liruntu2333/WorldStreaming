@@ -72,16 +72,15 @@ std::vector<Instance> WorldSystem::Tick(const Camera& camera) const
     const auto frustum = camera.GetFrustum();
     auto visible = m_Bvh->TickCulling(frustum);
     std::vector<DirectX::BoundingSphere> spheres(visible.size());
-
     for (uint32_t i = 0; i < visible.size(); ++i)
     {
         spheres[i].Center = m_Objects[visible[i]].Position;
         spheres[i].Radius = m_Objects[visible[i]].Scale;
     }
 
-    //const auto visible2 = m_Soa->TickCulling<xsimd::avx2>(spheres, frustum);
+    const auto visible2 = m_Soa->TickCulling<xsimd::default_arch>(spheres, frustum);
     //const auto visible2 = TickCulling(spheres, frustum);
-    const auto visible2 = m_Soa->TickCulling(spheres, frustum);
+    //const auto visible2 = m_Soa->TickCulling(spheres, frustum);
 
     for (uint32_t i = 0; i < visible2.size(); ++i)
     {
@@ -94,12 +93,13 @@ std::vector<Instance> WorldSystem::Tick(const Camera& camera) const
     {
         const uint32_t objIdx = visible[i];
         auto& ins = instances[i];
-        ins.World = (Matrix::CreateScale(m_Objects[objIdx].Scale) *
-            Matrix::CreateFromQuaternion(m_Objects[objIdx].Rotation) *
-            Matrix::CreateTranslation(m_Objects[objIdx].Position)).Transpose();
-        ins.GeoIdx = m_Objects[objIdx].GeometryIndex;
-        ins.MatIdx = m_Objects[objIdx].MaterialIndex;
-        ins.Color = m_Objects[objIdx].Color;
+        auto& obj = m_Objects[objIdx];
+        ins.World = (Matrix::CreateScale(obj.Scale) *
+                     Matrix::CreateFromQuaternion(obj.Rotation) *
+                     Matrix::CreateTranslation(obj.Position)).Transpose();
+        ins.GeoIdx = obj.GeometryIndex;
+        ins.MatIdx = obj.MaterialIndex;
+        ins.Color = obj.Color;
         ins.Param = 0;
     }
     return instances;

@@ -83,10 +83,10 @@ void Texture2D::Load(ID3D11Device* device, ID3D11DeviceContext* context, const s
 	CreateViews(device);
 }
 
-Texture2DArray::Texture2DArray(ID3D11Device* device, ID3D11DeviceContext* context, const std::filesystem::path& folder)
+Texture2DArray::Texture2DArray(ID3D11Device* device, ID3D11DeviceContext* context, const std::filesystem::path& dir)
 {
 	std::vector<std::filesystem::path> paths;
-	for (const auto& entry : std::filesystem::directory_iterator(folder))
+	for (const auto& entry : std::filesystem::directory_iterator(dir))
 	{
 		paths.push_back(entry.path());
 	}
@@ -136,10 +136,10 @@ void Texture2DArray::CreateViews(ID3D11Device* device)
 	}
 }
 
-void Texture2DArray::Load(ID3D11Device* device, ID3D11DeviceContext* context, const std::filesystem::path& folder)
+void Texture2DArray::Load(ID3D11Device* device, ID3D11DeviceContext* context, const std::filesystem::path& dir)
 {
 	std::vector<std::filesystem::path> paths;
-	for (const auto& entry : std::filesystem::directory_iterator(folder))
+	for (const auto& entry : std::filesystem::directory_iterator(dir))
 	{
 		paths.push_back(entry.path());
 	}
