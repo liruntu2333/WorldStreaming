@@ -14,7 +14,7 @@ using namespace DirectX;
 using Microsoft::WRL::ComPtr;
 
 constexpr size_t ObjectCapacity   = 1 << 10;
-constexpr size_t InstanceCapacity = UINT32_MAX >> 4;
+constexpr size_t InstanceCapacity = UINT32_MAX / sizeof(SubmeshInstance) / 2;
 
 ModelRenderer::ModelRenderer(
 	ID3D11Device* device, const std::shared_ptr<GpuConstants>& constants,

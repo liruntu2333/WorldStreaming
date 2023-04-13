@@ -19,7 +19,7 @@ public:
 
 private:
 
-    DirectX::SimpleMath::Vector3 m_Position{0.0f, 0.0f, -7000.0f};
+    DirectX::SimpleMath::Vector3 m_Position{0.0f, 100.0f, 0.0f};
     DirectX::SimpleMath::Vector3 m_Rotation; // row pitch yaw
     DirectX::SimpleMath::Vector3 m_Forward;
     DirectX::SimpleMath::Vector3 m_Right;

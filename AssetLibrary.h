@@ -2,6 +2,7 @@
 #include <filesystem>
 #include <map>
 
+#include "AssetImporter.h"
 #include "Material.h"
 #include "SubmeshInstance.h"
 #include "VertexPositionNormalTangentTexture.h"
@@ -22,6 +23,7 @@ public:
 
 	AssetLibrary(const std::filesystem::path& assetDir, const std::shared_ptr<GpuConstants>& constants) :
 		m_AssetDir(assetDir), m_Constants(constants) {}
+
 	void Initialize();
 
 	[[nodiscard]] std::vector<Material> GetMaterialBuffer() const;
@@ -29,7 +31,6 @@ public:
 	[[nodiscard]] const std::vector<Vertex>& GetMergedTriangleList() const { return m_MergedTriangleList; }
 
 private:
-
 	[[nodiscard]] auto GetMeshId() { return m_MeshId++; }
 	[[nodiscard]] auto GetSubsetId() { return m_SubsetId++; }
 	[[nodiscard]] auto GetMaterialId() { return m_MaterialId++; }
@@ -37,6 +38,7 @@ private:
 
 	void LoadMeshes(const std::filesystem::path& dir);
 	void MergeTriangleLists();
+	static void NormalizeVertices(AssetImporter::ImporterModelData& model);
 
 	std::filesystem::path m_AssetDir = L"./Asset/Mesh";
 	std::map<MeshId, std::pair<SubsetId, uint32_t>> m_MeshSubsetMap {};

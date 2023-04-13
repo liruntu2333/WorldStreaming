@@ -30,7 +30,7 @@ class AssetImporter
 public:
     struct ImporterModelData
     {
-        std::vector<ImporterMeshData> Meshes{};
+        std::vector<ImporterMeshData> Subsets{};
         std::vector<ImporterMaterialData> Materials{};
 
         ImporterModelData() = default;

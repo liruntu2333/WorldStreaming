@@ -38,7 +38,7 @@ void PlaneRenderer::Render(ID3D11DeviceContext* context)
 	// right handed
 	const auto depthTest = s_CommonStates->DepthDefault();
 	context->OMSetDepthStencilState(depthTest, 0);
-	context->RSSetState(s_CommonStates->CullCounterClockwise());
+	context->RSSetState(s_CommonStates->CullNone());
 	context->IASetIndexBuffer(nullptr, DXGI_FORMAT_R16_UINT, 0);
 	context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 	context->VSSetShader(m_Vs.Get(), nullptr, 0);

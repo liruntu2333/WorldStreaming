@@ -27,7 +27,7 @@ std::vector<SubmeshInstance> AssetLibrary::GetSubmeshInstanceBuffer(const std::v
 	std::vector<SubmeshInstance> instances;
 	for (uint32_t i = 0; i < objects.size(); ++i)
 	{
-		const auto mesh              = objects[i];
+		const auto mesh             = objects[i];
 		const auto [ssStart, ssCnt] = m_MeshSubsetMap.at(mesh);
 		for (int j = 0; j < ssCnt; ++j)
 		{
@@ -38,36 +38,41 @@ std::vector<SubmeshInstance> AssetLibrary::GetSubmeshInstanceBuffer(const std::v
 	return instances;
 }
 
+void AssetLibrary::NormalizeVertices(AssetImporter::ImporterModelData& model) {
+	std::vector<Vector3> vp;
+	BoundingSphere sphere;
+	for (const auto& mesh : model.Subsets)
+	{
+		const auto& vb = mesh.Vertices;
+		vp.reserve(vp.size() + vb.size());
+		for (const auto& v : vb)
+			vp.emplace_back(v.Pos);
+	}
+	BoundingSphere::CreateFromPoints(sphere, vp.size(), vp.data(), sizeof(Vector3));
+	const auto invRad    = 1.0f / sphere.Radius;
+	const Vector3 center = sphere.Center;
+	for (auto& mesh : model.Subsets)
+		for (auto& v : mesh.Vertices)
+			v.Pos = (v.Pos - center) * invRad;
+}
+
 void AssetLibrary::LoadMeshes(const std::filesystem::path& dir)
 {
 	for (const auto& entry : std::filesystem::directory_iterator(dir))
 	{
 		if (!entry.is_regular_file() || entry.path().extension() != ".fbx") continue;
 
-		std::vector<Vector3> vp;
+
 		AssetImporter::ImporterModelData model = AssetImporter::LoadAsset(entry.path());
 
 		// TODO: pass normalization transform matrix to culling system instead of normalizing vertices data
 		// Calculate bounding sphere and normalize vertices
-		BoundingSphere sphere;
-		for (const auto& mesh : model.Meshes)
-		{
-			const auto& vb = mesh.Vertices;
-			vp.reserve(vp.size() + vb.size());
-			for (const auto& v : vb)
-				vp.emplace_back(v.Pos);
-		}
-		BoundingSphere::CreateFromPoints(sphere, vp.size(), vp.data(), sizeof(Vector3));
-		const auto invRad    = 1.0f / sphere.Radius;
-		const Vector3 center = sphere.Center;
-		for (auto& mesh : model.Meshes)
-			for (auto& v : mesh.Vertices)
-				v.Pos = (v.Pos - center) * invRad;
+		NormalizeVertices(model);
 
 		// Convert to triangle list vbs
-		const uint32_t ssCnt     = model.Meshes.size();
+		const uint32_t ssCnt     = model.Subsets.size();
 		const SubsetId ssIdStart = m_SubsetId;
-		for (const auto& mesh : model.Meshes)
+		for (const auto& mesh : model.Subsets)
 		{
 			const auto& vb = mesh.Vertices;
 			const auto& ib = mesh.Indices;
@@ -93,7 +98,7 @@ void AssetLibrary::LoadMeshes(const std::filesystem::path& dir)
 		for (uint32_t i = 0; i < ssCnt; ++i)
 		{
 			const auto subsetId   = i + ssIdStart;
-			const auto materialId = model.Meshes[i].MaterialIndex + matIdStart;
+			const auto materialId = model.Subsets[i].MaterialIndex + matIdStart;
 			m_SubsetMaterialMap.emplace(subsetId, materialId);
 		}
 
