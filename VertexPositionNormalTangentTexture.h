@@ -1,12 +1,14 @@
 #pragma once
 #include <directxtk/SimpleMath.h>
 
+// Remember to change in shader as well.
 struct VertexPositionNormalTangentTexture
 {
     DirectX::SimpleMath::Vector3 Pos;
     DirectX::SimpleMath::Vector3 Nor;
     DirectX::SimpleMath::Vector3 Tan;
     DirectX::SimpleMath::Vector2 Tc;
+    //float Padding;
 
     VertexPositionNormalTangentTexture() = default;
     VertexPositionNormalTangentTexture(

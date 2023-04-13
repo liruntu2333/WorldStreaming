@@ -3,7 +3,7 @@
 #include <directxtk/SimpleMath.h>
 
 using namespace DirectX::SimpleMath;
-struct Constants
+struct GpuConstants
 {
     Matrix ViewProj;
     Vector3 EyePosition;
@@ -11,9 +11,9 @@ struct Constants
     Matrix View;
     Matrix Proj;
     uint32_t VertexPerMesh = 0;
-    uint32_t pad0;
+    uint32_t MeshCount = 0;
     uint32_t pad1;
     uint32_t pad2;
 
-    Constants() = default;
+    GpuConstants() = default;
 };

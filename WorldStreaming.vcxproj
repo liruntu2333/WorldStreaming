@@ -76,8 +76,12 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <OutDir>$(ProjectDir)</OutDir>
   </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" />
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <TargetName>Editor</TargetName>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <TargetName>Editor</TargetName>
+  </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
@@ -164,6 +168,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="AssetImporter.cpp" />
+    <ClCompile Include="AssetLibrary.cpp" />
     <ClCompile Include="BvhTree.cpp" />
     <ClCompile Include="Camera.cpp" />
     <ClCompile Include="DebugRenderer.cpp" />
@@ -180,22 +185,24 @@
   <ItemGroup>
     <ClInclude Include="AlignedVector.h" />
     <ClInclude Include="AssetImporter.h" />
+    <ClInclude Include="AssetLibrary.h" />
     <ClInclude Include="BvhTree.h" />
     <ClInclude Include="Camera.h" />
     <ClInclude Include="CullingSoa.h" />
     <ClInclude Include="D3DHelper.h" />
     <ClInclude Include="DebugRenderer.h" />
-    <ClInclude Include="FileSelection.h" />
     <ClInclude Include="GlobalContext.h" />
     <ClInclude Include="imgui_impl_dx11.h" />
     <ClInclude Include="imgui_impl_win32.h" />
-    <ClInclude Include="Instance.h" />
+    <ClInclude Include="Material.h" />
+    <ClInclude Include="ObjectInstance.h" />
     <ClInclude Include="ModelRenderer.h" />
-    <ClInclude Include="Constants.h" />
+    <ClInclude Include="GpuConstants.h" />
     <ClInclude Include="PlaneRenderer.h" />
     <ClInclude Include="Renderer.h" />
     <ClInclude Include="StaticObject.h" />
     <ClInclude Include="StructuredBuffer.h" />
+    <ClInclude Include="SubmeshInstance.h" />
     <ClInclude Include="Texture2D.h" />
     <ClInclude Include="ThreadPool.h" />
     <ClInclude Include="VertexPositionNormalTangentTexture.h" />

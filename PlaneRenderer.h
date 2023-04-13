@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Constants.h"
+#include "GpuConstants.h"
 #include "Renderer.h"
 #include <directxtk/BufferHelpers.h>
 #include <wrl/client.h>
@@ -8,7 +8,7 @@
 class PlaneRenderer : public Renderer
 {
 public:
-    PlaneRenderer(ID3D11Device* device, std::shared_ptr<Constants> constants);
+    PlaneRenderer(ID3D11Device* device, std::shared_ptr<GpuConstants> constants);
     ~PlaneRenderer() override = default;
 
     PlaneRenderer(const PlaneRenderer&) = delete;
@@ -23,9 +23,9 @@ public:
 protected:
     Microsoft::WRL::ComPtr<ID3D11VertexShader> m_Vs = nullptr;
     Microsoft::WRL::ComPtr<ID3D11PixelShader> m_Ps = nullptr;
-    DirectX::ConstantBuffer<Constants> m_Cb0;
+    DirectX::ConstantBuffer<GpuConstants> m_Cb0;
 
     // update outside
-    std::shared_ptr<Constants> m_Constants = nullptr;
+    std::shared_ptr<GpuConstants> m_Constants = nullptr;
 };
 

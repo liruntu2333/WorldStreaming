@@ -14,6 +14,7 @@
     <ClCompile Include="WorldSystem.cpp" />
     <ClCompile Include="BvhTree.cpp" />
     <ClCompile Include="DebugRenderer.cpp" />
+    <ClCompile Include="AssetLibrary.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="AlignedVector.h" />
@@ -23,11 +24,10 @@
     <ClInclude Include="imgui_impl_dx11.h" />
     <ClInclude Include="imgui_impl_win32.h" />
     <ClInclude Include="D3DHelper.h" />
-    <ClInclude Include="FileSelection.h" />
     <ClInclude Include="StructuredBuffer.h" />
     <ClInclude Include="Texture2D.h" />
     <ClInclude Include="Renderer.h" />
-    <ClInclude Include="Constants.h" />
+    <ClInclude Include="GpuConstants.h" />
     <ClInclude Include="PlaneRenderer.h" />
     <ClInclude Include="Camera.h" />
     <ClInclude Include="AssetImporter.h" />
@@ -35,9 +35,12 @@
     <ClInclude Include="ModelRenderer.h" />
     <ClInclude Include="WorldSystem.h" />
     <ClInclude Include="StaticObject.h" />
-    <ClInclude Include="Instance.h" />
+    <ClInclude Include="ObjectInstance.h" />
     <ClInclude Include="BvhTree.h" />
     <ClInclude Include="DebugRenderer.h" />
+    <ClInclude Include="AssetLibrary.h" />
+    <ClInclude Include="SubmeshInstance.h" />
+    <ClInclude Include="Material.h" />
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Shader">

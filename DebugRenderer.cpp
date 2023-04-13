@@ -3,7 +3,7 @@
 #include <queue>
 #include <directxtk/GeometricPrimitive.h>
 
-#include "Constants.h"
+#include "GpuConstants.h"
 #include "BvhTree.h"
 
 using namespace DirectX;
@@ -24,7 +24,7 @@ namespace
     };
 }
 
-DebugRenderer::DebugRenderer(ID3D11Device* device, std::shared_ptr<Constants> constants,
+DebugRenderer::DebugRenderer(ID3D11Device* device, std::shared_ptr<GpuConstants> constants,
     const std::vector<BvhLinearNode>& tree) :
     Renderer(device), m_Constants(std::move(constants)), m_BsTree(tree)
 {

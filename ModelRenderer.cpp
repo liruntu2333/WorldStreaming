@@ -4,34 +4,41 @@
 #include "VertexPositionNormalTangentTexture.h"
 #include <d3dcompiler.h>
 #include <numeric>
-
-#include "Instance.h"
-
+#include "SubmeshInstance.h"
+#include "AssetLibrary.h"
 #include <directxtk/GeometricPrimitive.h>
+#include "Material.h"
+#include "ObjectInstance.h"
 
 using namespace DirectX;
 using Microsoft::WRL::ComPtr;
 
-constexpr size_t InstanceCapacity = 1 << 13;
+constexpr size_t ObjectCapacity   = 1 << 10;
+constexpr size_t InstanceCapacity = UINT32_MAX >> 4;
 
-ModelRenderer::ModelRenderer(ID3D11Device* device, std::filesystem::path model, 
-                             std::shared_ptr<Constants> constants, std::shared_ptr<std::vector<Instance>> instances) :
-    Renderer(device), m_Constants(std::move(constants)), m_Instances(std::move(instances)), m_AssetDir(std::move(model))
-{
-}
+ModelRenderer::ModelRenderer(
+	ID3D11Device* device, const std::shared_ptr<GpuConstants>& constants,
+	const std::shared_ptr<std::vector<SubmeshInstance>>& subIns,
+	const std::shared_ptr<std::vector<ObjectInstance>>& objIns,
+	const std::shared_ptr<const AssetLibrary>& assetLibrary) :
+	Renderer(device),
+	m_Constants(constants),
+	m_SubmeshInstances(subIns),
+	m_ObjectInstances(objIns),
+	m_AssetLibrary(assetLibrary) {}
 
 void ModelRenderer::Initialize(ID3D11DeviceContext* context)
 {
-    m_Vc0 = std::make_unique<ConstantBuffer<Constants>>(m_Device);
+	m_Vc0 = std::make_unique<ConstantBuffer<GpuConstants>>(m_Device);
 
-    auto [meshes, textures] = LoadAssets(m_AssetDir);
-	m_MeshLib = std::move(meshes);
-	m_TexLib = std::move(textures);
-
-	m_Vt0 = MergeVert(context, m_MeshStats);
-	m_Vt1 = std::make_unique<StructuredBuffer<Instance>>(m_Device, InstanceCapacity);
-    m_Pt1 = std::make_unique<Texture2DArray>(m_Device, context, L"./Asset/Texture");
-	m_Pt1->CreateViews(m_Device);
+	const auto& subMeshVb = m_AssetLibrary->GetMergedTriangleList();
+	auto matBuff          = m_AssetLibrary->GetMaterialBuffer();
+	m_Vt0                 = std::make_unique<StructuredBuffer<SubmeshInstance>>(m_Device, InstanceCapacity);
+	m_Vt1                 = std::make_unique<StructuredBuffer<ObjectInstance>>(m_Device, ObjectCapacity);
+	m_Vt2                 = std::make_unique<StructuredBuffer<Vertex>>(m_Device, subMeshVb.data(), subMeshVb.size());
+	m_Pt0                 = std::make_unique<Texture2DArray>(m_Device, context, L"./Asset/Texture");
+	m_Pt0->CreateViews(m_Device);
+	m_Pt1 = std::make_unique<StructuredBuffer<Material>>(m_Device, matBuff.data(), matBuff.size());
 
 	ComPtr<ID3DBlob> blob;
 	ThrowIfFailed(D3DReadFileToBlob(L"./shader/SimpleVS.cso", &blob));
@@ -60,13 +67,13 @@ void ModelRenderer::Render(ID3D11DeviceContext* context)
 	{
 		const auto buffer = m_Vc0->GetBuffer();
 		context->VSSetConstantBuffers(0, 1, &buffer);
-		ID3D11ShaderResourceView* srv[] = { m_Vt0->GetSrv(), m_Vt1->GetSrv() };
+		ID3D11ShaderResourceView* srv[] = { m_Vt0->GetSrv(), m_Vt1->GetSrv(), m_Vt2->GetSrv() };
 		context->VSSetShaderResources(0, _countof(srv), srv);
 	}
 
 	{
-		const auto view = m_Pt1->GetSrv();
-		context->PSSetShaderResources(0, 1, &view);
+		ID3D11ShaderResourceView* srv[] = { m_Pt0->GetSrv(), m_Pt1->GetSrv() };
+		context->PSSetShaderResources(0, _countof(srv), srv);
 		const auto sampler = s_CommonStates->AnisotropicWrap();
 		context->PSSetSamplers(0, 1, &sampler);
 	}
@@ -74,85 +81,13 @@ void ModelRenderer::Render(ID3D11DeviceContext* context)
 	context->OMSetBlendState(opaque, nullptr, 0xffffffff);
 	const auto depthTest = s_CommonStates->DepthDefault();
 	context->OMSetDepthStencilState(depthTest, 0);
-
-	context->DrawInstanced(m_Constants->VertexPerMesh, m_Instances->size(), 0, 0);
-
+	context->RSSetState(s_CommonStates->CullCounterClockwise());
+	context->DrawInstanced(m_Constants->VertexPerMesh, m_SubmeshInstances->size(), 0, 0);
 }
 
 void ModelRenderer::UpdateBuffer(ID3D11DeviceContext* context)
 {
 	m_Vc0->SetData(context, *m_Constants);
-	m_Vt1->SetData(context, m_Instances->data(), m_Instances->size());
-}
-
-std::pair<ModelRenderer::MeshLib, ModelRenderer::TexLib> ModelRenderer::LoadAssets(
-	const std::filesystem::path& dir)
-{
-	for (const auto& entry : std::filesystem::directory_iterator(dir))
-	{
-		if (entry.is_regular_file())
-		{
-			std::vector<Vertex> vb;
-			AssetImporter::ModelData model = AssetImporter::LoadAsset(entry.path());
-
-			for (const auto & mesh : model.Meshes)
-			{
-				std::copy(mesh.Vertices.begin(), mesh.Vertices.end(), std::back_inserter(vb));
-			}
-		}
-	}
-}
-
-std::unique_ptr<StructuredBuffer<ModelRenderer::Vertex>> ModelRenderer::MergeVert(ID3D11DeviceContext* context, MeshStats& stats)
-{
-	stats.clear();
-	std::vector<Vertex> mergedVert;
-	for (const auto & mesh : m_MeshLib)
-	{
-		stats.push_back(mesh.size());
-	}
-
-	const auto meshCnt = scene->mNumMeshes;
-	for (uint32_t i = 0; i < meshCnt; ++i)
-	{
-		const aiMesh* mesh = scene->mMeshes[i];
-
-		const auto vertCnt = mesh->mNumVertices;
-		DirectX::BoundingSphere sphere;
-		DirectX::BoundingSphere::CreateFromPoints(sphere, vertCnt,
-												  reinterpret_cast<const DirectX::XMFLOAT3*>(mesh->mVertices), sizeof(aiVector3D));
-		const Vector3 offset = sphere.Center;
-		const float radius = sphere.Radius;
-		const auto faceCnt = mesh->mNumFaces;
-
-		triangleList.reserve(triangleList.size() + faceCnt * 3);
-
-		for (uint32_t j = 0; j < faceCnt; ++j)
-		{
-			const aiFace& face = mesh->mFaces[j];
-			for (uint32_t k = 0; k < 3; ++k)
-			{
-				const auto idx = face.mIndices[k];
-
-				Vector3 pos(mesh->mVertices[idx].x, mesh->mVertices[idx].y, mesh->mVertices[idx].z);
-				pos = (pos - offset) / radius;
-				Vector3 norm(mesh->mNormals[idx].x, mesh->mNormals[idx].y, mesh->mNormals[idx].z);
-				Vector3 tan(mesh->mTangents[idx].x, mesh->mTangents[idx].y, mesh->mTangents[idx].z);
-				Vector2 texCoord(mesh->mTextureCoords[0][idx].x, mesh->mTextureCoords[0][idx].y);
-
-				triangleList.emplace_back(pos, norm, tan, texCoord);
-			}
-		}
-	}
-
-	const uint32_t vertMax = *std::max_element(stats.begin(), stats.end());
-	for (const auto& mesh : m_MeshLib)
-	{
-		mergedVert.insert(mergedVert.end(), mesh.begin(), mesh.end());
-		Vertex back = mergedVert.back();
-		for (uint32_t i = mesh.size(); i < vertMax; ++i)
-			mergedVert.push_back(back);
-	}
-
-	return std::make_unique<StructuredBuffer<Vertex>>(m_Device, mergedVert.data(), mergedVert.size());
+	m_Vt0->SetData(context, m_SubmeshInstances->data(), m_SubmeshInstances->size());
+	m_Vt1->SetData(context, m_ObjectInstances->data(), m_ObjectInstances->size());
 }

@@ -2,41 +2,41 @@
 #include <filesystem>
 #include "VertexPositionNormalTangentTexture.h"
 
-struct Mesh
+struct ImporterMeshData
 {
     std::vector<VertexPositionNormalTangentTexture> Vertices{};
     std::vector<uint32_t> Indices{};
     uint32_t MaterialIndex{};
 
-    Mesh() = default;
-    Mesh(const std::vector<VertexPositionNormalTangentTexture>& vertices, const std::vector<uint32_t>& indices, uint32_t materialIndex)
+    ImporterMeshData() = default;
+    ImporterMeshData(const std::vector<VertexPositionNormalTangentTexture>& vertices, const std::vector<uint32_t>& indices, uint32_t materialIndex)
         : Vertices(vertices), Indices(indices), MaterialIndex(materialIndex) {}
-    Mesh(std::vector<VertexPositionNormalTangentTexture>&& vertices, std::vector<uint32_t>&& indices, uint32_t materialIndex)
+    ImporterMeshData(std::vector<VertexPositionNormalTangentTexture>&& vertices, std::vector<uint32_t>&& indices, uint32_t materialIndex)
         : Vertices(std::move(vertices)), Indices(std::move(indices)), MaterialIndex(materialIndex) {}
 };
 
-struct Material
+struct ImporterMaterialData
 {
-    std::filesystem::path TexturePath;
     std::string Name{};
+    std::filesystem::path TexturePath;
 
-    Material() = default;
-    Material(std::filesystem::path texturePath, std::string name)
-        : TexturePath(std::move(texturePath)), Name(std::move(name)) {}
+    ImporterMaterialData() = default;
+    ImporterMaterialData(std::string name, std::filesystem::path texturePath)
+        : Name(std::move(name)), TexturePath(std::move(texturePath)) {}
 };
 
 class AssetImporter
 {
 public:
-    struct ModelData
+    struct ImporterModelData
     {
-        std::vector<Mesh> Meshes{};
-        std::vector<Material> Materials{};
+        std::vector<ImporterMeshData> Meshes{};
+        std::vector<ImporterMaterialData> Materials{};
 
-        ModelData() = default;
-        ModelData(ModelData&&) = default;
+        ImporterModelData() = default;
+        ImporterModelData(ImporterModelData&&) = default;
     };
 
-    static ModelData LoadAsset(const std::filesystem::path& fPath);
+    static ImporterModelData LoadAsset(const std::filesystem::path& fPath);
 };
 

@@ -12,12 +12,12 @@ namespace DirectX
     }
 }
 
-struct Constants;
+struct GpuConstants;
 
 class DebugRenderer : public Renderer
 {
 public:
-    DebugRenderer(ID3D11Device* device, std::shared_ptr<Constants> constants,
+    DebugRenderer(ID3D11Device* device, std::shared_ptr<GpuConstants> constants,
         const std::vector<BvhLinearNode>& tree);
 
     ~DebugRenderer() override = default;
@@ -34,7 +34,7 @@ private:
     void UpdateBuffer(ID3D11DeviceContext* context) override;
 
     std::unique_ptr<DirectX::GeometricPrimitive> m_SphereGeo = nullptr;
-    std::shared_ptr<Constants> m_Constants;
+    std::shared_ptr<GpuConstants> m_Constants;
     const std::vector<BvhLinearNode>& m_BsTree;
 };
 
