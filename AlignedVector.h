@@ -7,7 +7,7 @@ template <class T, size_t Column, size_t Row, size_t Alignment>
 class AlignedVector
 {
 public:
-    static_assert(Column * Row * sizeof(T) <= 1 << 10 << 7);  // 128 KB for L1 cache
+    static_assert(Column * Row * sizeof(T) <= 1 << 10 << 8);  // 256 KB for L1 cache
     AlignedVector() : m_Data(Column * Row) {}
     ~AlignedVector() = default;
 

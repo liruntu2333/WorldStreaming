@@ -12,15 +12,17 @@
 #include "WorldSystem.h"
 #include "PlaneRenderer.h"
 #include "ModelRenderer.h"
+#include "MergedModelRenderer.h"
 #include "Camera.h"
 #include "ObjectInstance.h"
+#include "MergedSubmeshInstance.h"
 #include "DebugRenderer.h"
 #include "AssetLibrary.h"
 
 // Data
-static ID3D11Device* g_pd3dDevice                     = NULL;
-static ID3D11DeviceContext* g_pd3dDeviceContext       = NULL;
-static IDXGISwapChain* g_pSwapChain                   = NULL;
+static ID3D11Device* g_pd3dDevice = NULL;
+static ID3D11DeviceContext* g_pd3dDeviceContext = NULL;
+static IDXGISwapChain* g_pSwapChain = NULL;
 static ID3D11RenderTargetView* g_mainRenderTargetView = NULL;
 
 using namespace DirectX::SimpleMath;
@@ -29,15 +31,16 @@ namespace
 {
 	std::unique_ptr<DirectX::Texture2D> g_depthStencil = nullptr;
 
-	std::shared_ptr<GpuConstants> g_GpuConstants               = nullptr;
+	std::shared_ptr<GpuConstants> g_GpuConstants = nullptr;
 	std::shared_ptr<std::vector<SubmeshInstance>> g_SubmeshIns = nullptr;
-	std::shared_ptr<std::vector<ObjectInstance>> g_ObjectIns   = nullptr;
-	std::unique_ptr<Renderer> g_PlaneRender                    = nullptr;
-	std::unique_ptr<Renderer> g_ModelRender                    = nullptr;
-	std::unique_ptr<Renderer> g_DebugRender                    = nullptr;
-	std::unique_ptr<Camera> g_Camera                           = nullptr;
-	std::unique_ptr<WorldSystem> g_WorldSystem                 = nullptr;
-	std::shared_ptr<AssetLibrary> g_AssetLibrary               = nullptr;
+	std::shared_ptr<std::vector<ObjectInstance>> g_ObjectIns = nullptr;
+	std::shared_ptr<std::vector<MergedSubmeshInstance>> g_MergedIns = nullptr;
+	std::unique_ptr<Renderer> g_PlaneRender = nullptr;
+	std::unique_ptr<MergedModelRenderer> g_ModelRender = nullptr;
+	std::unique_ptr<Renderer> g_DebugRender = nullptr;
+	std::unique_ptr<Camera> g_Camera = nullptr;
+	std::unique_ptr<WorldSystem> g_WorldSystem = nullptr;
+	std::shared_ptr<AssetLibrary> g_AssetLibrary = nullptr;
 }
 
 // Forward declarations of helper functions
@@ -120,17 +123,17 @@ int main(int, char**)
 
 		UpdateConstants(io);
 
-		static int loopCnt   = 0;
+		static int loopCnt = 0;
 		static float timeSum = 0.0f;
 		static float timeAvg = 0.0f;
 
-		auto begin       = std::chrono::steady_clock::now();
+		auto begin = std::chrono::steady_clock::now();
 		auto [subIns, objIns] = g_WorldSystem->Tick(*g_Camera);
-		auto end         = std::chrono::steady_clock::now();
+		auto end = std::chrono::steady_clock::now();
 		*g_SubmeshIns = std::move(subIns);
 		*g_ObjectIns = std::move(objIns);
 		timeSum += std::chrono::duration_cast<std::chrono::microseconds>(end - begin).count();
-		if (++loopCnt >= 1000)
+		if (++loopCnt >= 100)
 		{
 			timeAvg = timeSum / loopCnt;
 			loopCnt = 0;
@@ -140,10 +143,11 @@ int main(int, char**)
 		ImGui::Begin("Culling tick");
 		ImGui::Text("Object count : %d Visible count : %d Culling avg time : %2.0fus Frame rate : %2.0f FPS",
 			g_WorldSystem->GetObjectCount(), g_ObjectIns->size(), timeAvg, io.Framerate);
-		static int splitMethod  = 0;
+		static int splitMethod = 0;
 		static int objectInNode = 128;
 		static bool visualizeBs = false;
-		bool changed            = false;
+
+		bool changed = false;
 		changed |= ImGui::DragInt("Object in node", &objectInNode, 1, 1, INT32_MAX);
 		changed |= ImGui::RadioButton("Middle", &splitMethod, 0);
 		ImGui::SameLine();
@@ -153,6 +157,11 @@ int main(int, char**)
 		if (changed)
 			g_WorldSystem->GenerateBvh(objectInNode, static_cast<BvhTree::SpitMethod>(splitMethod));
 		if (ImGui::Button("Visualize Bounding")) visualizeBs = !visualizeBs;
+
+		static int mergeIns = 0;
+		ImGui::RadioButton("Left Unmerged", &mergeIns, 0);
+		ImGui::SameLine();
+		ImGui::RadioButton("Merge Instance", &mergeIns, 1);
 
 		ImGui::End();
 
@@ -167,9 +176,34 @@ int main(int, char**)
 			D3D11_CLEAR_DEPTH, 1.0f, 0);
 
 		g_Camera->SetViewPort(g_pd3dDeviceContext);
+
+		g_PlaneRender->UpdateBuffer(g_pd3dDeviceContext);
 		g_PlaneRender->Render(g_pd3dDeviceContext);
-		g_ModelRender->Render(g_pd3dDeviceContext);
-		if (visualizeBs) g_DebugRender->Render(g_pd3dDeviceContext);
+
+		if(mergeIns)
+		{
+			g_MergedIns->clear();
+			g_MergedIns->reserve(g_SubmeshIns->size());
+			for (uint32_t i = 0; i < g_SubmeshIns->size(); ++i)
+			{
+				const auto& submesh = g_SubmeshIns->at(i);
+				const auto objIdx = submesh.ObjectIdx;
+				g_MergedIns->emplace_back(g_ObjectIns->at(objIdx), submesh);
+			}
+			g_ModelRender->UpdateBuffer(g_pd3dDeviceContext);
+			g_ModelRender->Render(g_pd3dDeviceContext);
+		}
+		else
+		{
+			g_ModelRender->ModelRenderer::UpdateBuffer(g_pd3dDeviceContext);
+			g_ModelRender->ModelRenderer::Render(g_pd3dDeviceContext);
+		}
+			
+		if (visualizeBs)
+		{
+			g_DebugRender->UpdateBuffer(g_pd3dDeviceContext);
+			g_DebugRender->Render(g_pd3dDeviceContext);
+		}
 
 		ImGui_ImplDX11_RenderDrawData(ImGui::GetDrawData());
 
@@ -194,19 +228,19 @@ bool CreateDeviceD3D(HWND hWnd)
 	// Setup swap chain
 	DXGI_SWAP_CHAIN_DESC sd;
 	ZeroMemory(&sd, sizeof(sd));
-	sd.BufferCount                        = 2;
-	sd.BufferDesc.Width                   = 0;
-	sd.BufferDesc.Height                  = 0;
-	sd.BufferDesc.Format                  = DXGI_FORMAT_R8G8B8A8_UNORM;
-	sd.BufferDesc.RefreshRate.Numerator   = 60;
+	sd.BufferCount = 2;
+	sd.BufferDesc.Width = 0;
+	sd.BufferDesc.Height = 0;
+	sd.BufferDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+	sd.BufferDesc.RefreshRate.Numerator = 60;
 	sd.BufferDesc.RefreshRate.Denominator = 1;
-	sd.Flags                              = DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH;
-	sd.BufferUsage                        = DXGI_USAGE_RENDER_TARGET_OUTPUT;
-	sd.OutputWindow                       = hWnd;
-	sd.SampleDesc.Count                   = 1;
-	sd.SampleDesc.Quality                 = 0;
-	sd.Windowed                           = TRUE;
-	sd.SwapEffect                         = DXGI_SWAP_EFFECT_DISCARD;
+	sd.Flags = DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH;
+	sd.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
+	sd.OutputWindow = hWnd;
+	sd.SampleDesc.Count = 1;
+	sd.SampleDesc.Quality = 0;
+	sd.Windowed = TRUE;
+	sd.SwapEffect = DXGI_SWAP_EFFECT_DISCARD;
 
 	UINT createDeviceFlags = 0;
 #ifdef _DEBUG
@@ -279,7 +313,8 @@ void InitWorldStreaming()
 	g_GpuConstants = std::make_shared<GpuConstants>();
 
 	g_SubmeshIns = std::make_shared<std::vector<SubmeshInstance>>();
-	g_ObjectIns  = std::make_shared<std::vector<ObjectInstance>>();
+	g_ObjectIns = std::make_shared<std::vector<ObjectInstance>>();
+	g_MergedIns = std::make_shared<std::vector<MergedSubmeshInstance>>();
 
 	g_AssetLibrary = std::make_shared<AssetLibrary>(L"./Asset/Mesh", g_GpuConstants);
 	g_AssetLibrary->Initialize();
@@ -287,8 +322,8 @@ void InitWorldStreaming()
 	g_PlaneRender = std::make_unique<PlaneRenderer>(g_pd3dDevice, g_GpuConstants);
 	g_PlaneRender->Initialize(g_pd3dDeviceContext);
 
-	g_ModelRender = std::make_unique<ModelRenderer>(g_pd3dDevice, g_GpuConstants, g_SubmeshIns, g_ObjectIns,
-		g_AssetLibrary);
+	g_ModelRender = std::make_unique<MergedModelRenderer>(g_pd3dDevice, g_GpuConstants, g_SubmeshIns, g_ObjectIns,
+		g_AssetLibrary, g_MergedIns);
 	g_ModelRender->Initialize(g_pd3dDeviceContext);
 
 	g_WorldSystem = std::make_unique<WorldSystem>(g_GpuConstants, g_AssetLibrary);
@@ -304,11 +339,11 @@ void UpdateConstants(const ImGuiIO& io)
 {
 	g_Camera->Update(io);
 
-	g_GpuConstants->View        = g_Camera->GetViewMatrix().Transpose();
-	g_GpuConstants->Proj        = g_Camera->GetProjectionMatrix().Transpose();
-	g_GpuConstants->ViewProj    = g_Camera->GetViewProjectionMatrix().Transpose();
+	g_GpuConstants->View = g_Camera->GetViewMatrix().Transpose();
+	g_GpuConstants->Proj = g_Camera->GetProjectionMatrix().Transpose();
+	g_GpuConstants->ViewProj = g_Camera->GetViewProjectionMatrix().Transpose();
 	g_GpuConstants->EyePosition = g_Camera->GetPosition();
-	g_GpuConstants->DeltaTime   = io.DeltaTime;
+	g_GpuConstants->DeltaTime = io.DeltaTime;
 }
 
 // Forward declare message handler from imgui_impl_win32.cpp

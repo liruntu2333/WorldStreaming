@@ -5,8 +5,8 @@
 using namespace DirectX;
 using Microsoft::WRL::ComPtr;
 
-PlaneRenderer::PlaneRenderer(ID3D11Device* device, std::shared_ptr<GpuConstants> constants): Renderer(device),
-	m_Constants(constants), m_Cb0(device)
+PlaneRenderer::PlaneRenderer(ID3D11Device* device, const std::shared_ptr<GpuConstants>& constants): Renderer(device),
+	m_Cb0(device), m_Constants(constants)
 {
 }
 

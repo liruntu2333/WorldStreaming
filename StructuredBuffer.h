@@ -12,7 +12,7 @@ namespace DirectX
 	class StructuredBuffer
 	{
 	public:
-		explicit StructuredBuffer(ID3D11Device* device, UINT elementCount);
+		StructuredBuffer(ID3D11Device* device, UINT elementCount);
 		StructuredBuffer(ID3D11Device* device, const T* buffer, UINT size); // static version
 
 		~StructuredBuffer() = default;
@@ -32,8 +32,6 @@ namespace DirectX
 	private:
 		Microsoft::WRL::ComPtr<ID3D11Buffer> m_Buffer = nullptr;
 		Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> m_Srv = nullptr;
-		//Microsoft::WRL::ComPtr<ID3D11UnorderedAccessView> m_Uav = nullptr;
-		//ID3D11DeviceContext* m_Context;
 	};
 
 	template <typename T>
@@ -41,13 +39,13 @@ namespace DirectX
 		m_Capacity(elementCount)
 	{
 		const CD3D11_BUFFER_DESC buff(m_Capacity * sizeof(T), D3D11_BIND_SHADER_RESOURCE,
-		                              D3D11_USAGE_DYNAMIC, D3D11_CPU_ACCESS_WRITE,
-		                              D3D11_RESOURCE_MISC_BUFFER_STRUCTURED, sizeof(T));
+			D3D11_USAGE_DYNAMIC, D3D11_CPU_ACCESS_WRITE,
+			D3D11_RESOURCE_MISC_BUFFER_STRUCTURED, sizeof(T));
 		auto hr = device->CreateBuffer(&buff, nullptr, &m_Buffer);
 		ThrowIfFailed(hr);
 
 		const CD3D11_SHADER_RESOURCE_VIEW_DESC srv(m_Buffer.Get(), DXGI_FORMAT_UNKNOWN,
-		                                           0, m_Capacity, 0);
+			0, m_Capacity, 0);
 		hr = device->CreateShaderResourceView(m_Buffer.Get(), &srv, &m_Srv);
 		ThrowIfFailed(hr);
 	}
@@ -56,7 +54,7 @@ namespace DirectX
 	StructuredBuffer<T>::StructuredBuffer(ID3D11Device* device, const T* buffer, UINT size) : m_Capacity(size)
 	{
 		const CD3D11_BUFFER_DESC desc(m_Capacity * sizeof(T), D3D11_BIND_SHADER_RESOURCE,
-		                              D3D11_USAGE_DEFAULT, 0, D3D11_RESOURCE_MISC_BUFFER_STRUCTURED, sizeof(T));
+			D3D11_USAGE_DEFAULT, 0, D3D11_RESOURCE_MISC_BUFFER_STRUCTURED, sizeof(T));
 		const D3D11_SUBRESOURCE_DATA data = { buffer, 0, 0 };
 		auto hr = device->CreateBuffer(&desc, &data, &m_Buffer);
 		ThrowIfFailed(hr);

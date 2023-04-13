@@ -11,4 +11,6 @@ struct GlobalContext
     void Initialize(size_t threadCount);
 };
 
+constexpr uint32_t OBJECT_MAX = 1 << 14;
+
 extern GlobalContext g_Context;

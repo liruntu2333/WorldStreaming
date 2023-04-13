@@ -35,7 +35,7 @@ namespace
 	std::vector<StaticObject> GenerateRandom(int geoCnt)
 	{
 		std::vector<StaticObject> res;
-		res.reserve(SOA_CAPACITY);
+		res.reserve(OBJECT_MAX);
 		std::random_device rd;
 		std::mt19937 gen(rd());
 		std::uniform_real_distribution disX(-2000.0f, 2000.0f);
@@ -48,7 +48,7 @@ namespace
 		std::uniform_int_distribution disCol(0, 255);
 		std::uniform_int_distribution disMat(0, 31);
 		std::uniform_int_distribution disGeo(0, std::max(geoCnt - 1, 0));
-		for (uint32_t i = 0; i < SOA_CAPACITY; ++i)
+		for (uint32_t i = 0; i < OBJECT_MAX; ++i)
 		{
 			auto pos     = Vector3(disX(gen), disY(gen), disZ(gen));
 			auto rot     = Quaternion::CreateFromYawPitchRoll(disYaw(gen), disPitch(gen), disRow(gen));
@@ -66,7 +66,7 @@ namespace
 
 WorldSystem::WorldSystem(
 	std::shared_ptr<GpuConstants> constants, const std::shared_ptr<const AssetLibrary>& assLib) : m_Soa(
-		std::make_unique<CullingSoa<SOA_CAPACITY>>()), m_Constants(std::move(constants)),
+		std::make_unique<CullingSoa<OBJECT_MAX>>()), m_Constants(std::move(constants)),
 	m_AssetLib(assLib) {}
 
 void WorldSystem::ComputeWorlds() {

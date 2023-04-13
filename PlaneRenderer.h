@@ -8,7 +8,7 @@
 class PlaneRenderer : public Renderer
 {
 public:
-    PlaneRenderer(ID3D11Device* device, std::shared_ptr<GpuConstants> constants);
+    PlaneRenderer(ID3D11Device* device, const std::shared_ptr<GpuConstants>& constants);
     ~PlaneRenderer() override = default;
 
     PlaneRenderer(const PlaneRenderer&) = delete;

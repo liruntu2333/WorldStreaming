@@ -1,20 +1,16 @@
 #include "ModelRenderer.h"
 
-#include "AssetImporter.h"
 #include "VertexPositionNormalTangentTexture.h"
 #include <d3dcompiler.h>
-#include <numeric>
 #include "SubmeshInstance.h"
 #include "AssetLibrary.h"
 #include <directxtk/GeometricPrimitive.h>
 #include "Material.h"
 #include "ObjectInstance.h"
+#include "GlobalContext.h"
 
 using namespace DirectX;
 using Microsoft::WRL::ComPtr;
-
-constexpr size_t ObjectCapacity   = 1 << 10;
-constexpr size_t InstanceCapacity = UINT32_MAX / sizeof(SubmeshInstance) / 2;
 
 ModelRenderer::ModelRenderer(
 	ID3D11Device* device, const std::shared_ptr<GpuConstants>& constants,
@@ -32,11 +28,11 @@ void ModelRenderer::Initialize(ID3D11DeviceContext* context)
 	m_Vc0 = std::make_unique<ConstantBuffer<GpuConstants>>(m_Device);
 
 	const auto& subMeshVb = m_AssetLibrary->GetMergedTriangleList();
-	auto matBuff          = m_AssetLibrary->GetMaterialBuffer();
-	m_Vt0                 = std::make_unique<StructuredBuffer<SubmeshInstance>>(m_Device, InstanceCapacity);
-	m_Vt1                 = std::make_unique<StructuredBuffer<ObjectInstance>>(m_Device, ObjectCapacity);
-	m_Vt2                 = std::make_unique<StructuredBuffer<Vertex>>(m_Device, subMeshVb.data(), subMeshVb.size());
-	m_Pt0                 = std::make_unique<Texture2DArray>(m_Device, context, L"./Asset/Texture");
+	auto matBuff = m_AssetLibrary->GetMaterialBuffer();
+	m_Vt0 = std::make_unique<StructuredBuffer<SubmeshInstance>>(m_Device, INSTANCE_MAX);
+	m_Vt1 = std::make_unique<StructuredBuffer<ObjectInstance>>(m_Device, OBJECT_MAX);
+	m_Vt2 = std::make_unique<StructuredBuffer<Vertex>>(m_Device, subMeshVb.data(), subMeshVb.size());
+	m_Pt0 = std::make_unique<Texture2DArray>(m_Device, context, L"./Asset/Texture");
 	m_Pt0->CreateViews(m_Device);
 	m_Pt1 = std::make_unique<StructuredBuffer<Material>>(m_Device, matBuff.data(), matBuff.size());
 
@@ -55,8 +51,6 @@ void ModelRenderer::Initialize(ID3D11DeviceContext* context)
 
 void ModelRenderer::Render(ID3D11DeviceContext* context)
 {
-	UpdateBuffer(context);
-
 	context->IASetInputLayout(nullptr);
 	context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 	context->IASetVertexBuffers(0, 0, nullptr, nullptr, nullptr);

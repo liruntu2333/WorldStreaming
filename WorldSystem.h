@@ -6,6 +6,7 @@
 
 #include "CullingSoa.h"
 #include "BvhTree.h"
+#include "GlobalContext.h"
 
 struct ObjectInstance;
 struct SubmeshInstance;
@@ -15,8 +16,6 @@ struct ObjectId;
 struct StaticObject;
 class Camera;
 class Renderer;
-
-constexpr uint32_t SOA_CAPACITY = 1 << 10;
 
 class WorldSystem
 {
@@ -36,7 +35,7 @@ private:
 
 	std::vector<StaticObject> m_Objects {};
 	std::vector<DirectX::SimpleMath::Matrix> m_WorldMatrices {};
-	std::unique_ptr<CullingSoa<SOA_CAPACITY>> m_Soa = nullptr;
+	std::unique_ptr<CullingSoa<OBJECT_MAX>> m_Soa = nullptr;
 	std::unique_ptr<BvhTree> m_Bvh                  = nullptr;
 	std::shared_ptr<GpuConstants> m_Constants       = nullptr;
 	std::shared_ptr<const AssetLibrary> m_AssetLib  = nullptr;
