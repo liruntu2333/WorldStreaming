@@ -26,31 +26,49 @@ public:
 
 	void Initialize();
 
-	[[nodiscard]] std::vector<Material> GetMaterialBuffer() const;
-	[[nodiscard]] std::vector<SubmeshInstance> GetSubmeshInstanceBuffer(const std::vector<MeshId>& objects) const;
+	[[nodiscard]] std::vector<Material> GetMaterialList() const;
+	[[nodiscard]] std::vector<SubmeshInstance> GetSubmeshQueryList(const std::vector<MeshId>& objects) const;
 	[[nodiscard]] const std::vector<Vertex>& GetMergedTriangleList() const { return m_MergedTriangleList; }
 
+	auto GetMeshCount() const { return m_MeshSubmeshMap.size(); }
+
 private:
-	[[nodiscard]] auto GetMeshId() { return m_MeshId++; }
-	[[nodiscard]] auto GetSubsetId() { return m_SubsetId++; }
-	[[nodiscard]] auto GetMaterialId() { return m_MaterialId++; }
-	[[nodiscard]] auto GetTextureId() { return m_TextureId++; }
+	[[nodiscard]] auto GetMeshId()
+	{
+		assert(m_MeshId != INT32_MAX);
+		return m_MeshId++;
+	}
+	[[nodiscard]] auto GetSubmeshId()
+	{
+		assert(m_SubmeshId != INT32_MAX);
+		return m_SubmeshId++;
+	}
+	[[nodiscard]] auto GetMaterialId()
+	{
+		assert(m_MaterialId != INT32_MAX);
+		return m_MaterialId++;
+	}
+	[[nodiscard]] auto GetTextureId()
+	{
+		assert(m_TextureId != INT32_MAX);
+		return m_TextureId++;
+	}
 
 	void LoadMeshes(const std::filesystem::path& dir);
 	void MergeTriangleLists();
 	static void NormalizeVertices(AssetImporter::ImporterModelData& model);
 
 	std::filesystem::path m_AssetDir = L"./Asset/Mesh";
-	std::map<MeshId, std::pair<SubsetId, uint32_t>> m_MeshSubsetMap {};
-	std::map<SubsetId, std::vector<Vertex>> m_SubsetTriangle {};
-	std::map<SubsetId, MaterialId> m_SubsetMaterialMap {};
-	std::map<MaterialId, Material> m_Materials {};
+	std::unordered_map<MeshId, std::pair<SubsetId, uint32_t>> m_MeshSubmeshMap {};
+	std::unordered_map<SubsetId, std::vector<Vertex>> m_SubmeshTriangle {};
+	std::unordered_map<SubsetId, MaterialId> m_SubmeshMaterialMap {};
+	std::unordered_map<MaterialId, Material> m_Materials {};
 
 	std::vector<Vertex> m_MergedTriangleList {};
 	std::vector<std::filesystem::path> m_MergedTextures {};
 
 	uint32_t m_MeshId     = 0;
-	uint32_t m_SubsetId   = 0;
+	uint32_t m_SubmeshId   = 0;
 	uint32_t m_MaterialId = 0;
 	uint32_t m_TextureId  = 0;
 

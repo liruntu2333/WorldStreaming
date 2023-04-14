@@ -28,7 +28,7 @@ void ModelRenderer::Initialize(ID3D11DeviceContext* context)
 	m_Vc0 = std::make_unique<ConstantBuffer<GpuConstants>>(m_Device);
 
 	const auto& subMeshVb = m_AssetLibrary->GetMergedTriangleList();
-	auto matBuff = m_AssetLibrary->GetMaterialBuffer();
+	auto matBuff = m_AssetLibrary->GetMaterialList();
 	m_Vt0 = std::make_unique<StructuredBuffer<SubmeshInstance>>(m_Device, INSTANCE_MAX);
 	m_Vt1 = std::make_unique<StructuredBuffer<ObjectInstance>>(m_Device, OBJECT_MAX);
 	m_Vt2 = std::make_unique<StructuredBuffer<Vertex>>(m_Device, subMeshVb.data(), subMeshVb.size());

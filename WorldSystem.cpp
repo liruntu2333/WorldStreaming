@@ -7,7 +7,6 @@
 #include "BvhTree.h"
 #include "GpuConstants.h"
 #include "AssetLibrary.h"
-#include "GlobalContext.h"
 #include "ObjectInstance.h"
 
 using namespace DirectX::SimpleMath;
@@ -29,7 +28,7 @@ namespace DirectX
 
 namespace
 {
-	constexpr uint32_t BVH_NODE_CAP          = 128;
+	constexpr uint32_t BVH_NODE_CAP = 128;
 	constexpr BvhTree::SpitMethod BVH_METHOD = BvhTree::SpitMethod::Middle;
 
 	std::vector<StaticObject> GenerateRandom(int geoCnt)
@@ -50,18 +49,16 @@ namespace
 		std::uniform_int_distribution disGeo(0, std::max(geoCnt - 1, 0));
 		for (uint32_t i = 0; i < OBJECT_MAX; ++i)
 		{
-			auto pos     = Vector3(disX(gen), disY(gen), disZ(gen));
-			auto rot     = Quaternion::CreateFromYawPitchRoll(disYaw(gen), disPitch(gen), disRow(gen));
-			auto scale   = disScale(gen);
+			auto pos = Vector3(disX(gen), disY(gen), disZ(gen));
+			auto rot = Quaternion::CreateFromYawPitchRoll(disYaw(gen), disPitch(gen), disRow(gen));
+			auto scale = disScale(gen);
 			uint32_t col = disCol(gen) << 24 | disCol(gen) << 16 | disCol(gen) << 8 | 255;
-			auto mat     = disMat(gen);
-			auto geo     = disGeo(gen);
+			auto mat = disMat(gen);
+			auto geo = disGeo(gen);
 			res.emplace_back(pos, rot, 50.0f, geo, mat, col);
 		}
 		return res;
 	}
-
-
 }
 
 WorldSystem::WorldSystem(
@@ -69,7 +66,8 @@ WorldSystem::WorldSystem(
 		std::make_unique<CullingSoa<OBJECT_MAX>>()), m_Constants(std::move(constants)),
 	m_AssetLib(assLib) {}
 
-void WorldSystem::ComputeWorlds() {
+void WorldSystem::ComputeWorlds()
+{
 	m_WorldMatrices.clear();
 	m_WorldMatrices.reserve(m_Objects.size());
 	for (const auto& object : m_Objects)
@@ -82,15 +80,15 @@ void WorldSystem::ComputeWorlds() {
 
 void WorldSystem::Initialize()
 {
-	m_Objects = GenerateRandom(g_Context.MeshCount);
-	m_Bvh     = std::make_unique<BvhTree>(m_Objects, BVH_NODE_CAP, BVH_METHOD);
+	m_Objects = GenerateRandom(m_AssetLib->GetMeshCount());
+	m_Bvh = std::make_unique<BvhTree>(m_Objects, BVH_NODE_CAP, BVH_METHOD);
 	ComputeWorlds();
 }
 
 std::pair<std::vector<SubmeshInstance>, std::vector<ObjectInstance>> WorldSystem::Tick(const Camera& camera) const
 {
 	const auto frustum = camera.GetFrustum();
-	auto visible       = m_Bvh->TickCulling(frustum);
+	auto visible = m_Bvh->TickCulling(frustum);
 	std::vector<DirectX::BoundingSphere> spheres(visible.size());
 	for (uint32_t i = 0; i < visible.size(); ++i)
 	{
@@ -117,7 +115,7 @@ std::pair<std::vector<SubmeshInstance>, std::vector<ObjectInstance>> WorldSystem
 		meshIndices.push_back(m_Objects[i].GeometryIndex);
 		objIns.emplace_back(m_WorldMatrices[i], m_Objects[i].Color);
 	}
-	auto const submeshIns = m_AssetLib->GetSubmeshInstanceBuffer(meshIndices);
+	auto const submeshIns = m_AssetLib->GetSubmeshQueryList(meshIndices);
 
 	return { submeshIns, objIns };
 }

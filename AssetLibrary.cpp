@@ -1,6 +1,5 @@
 #include "AssetLibrary.h"
 #include "AssetImporter.h"
-#include "GlobalContext.h"
 #include "GpuConstants.h"
 
 using namespace DirectX;
@@ -13,7 +12,7 @@ void AssetLibrary::Initialize()
 	MergeTriangleLists();
 }
 
-std::vector<Material> AssetLibrary::GetMaterialBuffer() const
+std::vector<Material> AssetLibrary::GetMaterialList() const
 {
 	std::vector<Material> materials;
 	materials.reserve(m_Materials.size());
@@ -22,23 +21,24 @@ std::vector<Material> AssetLibrary::GetMaterialBuffer() const
 	return materials;
 }
 
-std::vector<SubmeshInstance> AssetLibrary::GetSubmeshInstanceBuffer(const std::vector<MeshId>& objects) const
+std::vector<SubmeshInstance> AssetLibrary::GetSubmeshQueryList(const std::vector<MeshId>& objects) const
 {
 	std::vector<SubmeshInstance> instances;
 	for (uint32_t i = 0; i < objects.size(); ++i)
 	{
-		const auto mesh             = objects[i];
-		const auto [ssStart, ssCnt] = m_MeshSubsetMap.at(mesh);
+		const auto mesh = objects[i];
+		const auto [ssStart, ssCnt] = m_MeshSubmeshMap.at(mesh);
 		for (int j = 0; j < ssCnt; ++j)
 		{
 			const SubsetId subset = ssStart + j;
-			instances.emplace_back(subset, m_SubsetMaterialMap.at(subset), i);
+			instances.emplace_back(subset, m_SubmeshMaterialMap.at(subset), i);
 		}
 	}
 	return instances;
 }
 
-void AssetLibrary::NormalizeVertices(AssetImporter::ImporterModelData& model) {
+void AssetLibrary::NormalizeVertices(AssetImporter::ImporterModelData& model)
+{
 	std::vector<Vector3> vp;
 	BoundingSphere sphere;
 	for (const auto& mesh : model.Subsets)
@@ -49,7 +49,7 @@ void AssetLibrary::NormalizeVertices(AssetImporter::ImporterModelData& model) {
 			vp.emplace_back(v.Pos);
 	}
 	BoundingSphere::CreateFromPoints(sphere, vp.size(), vp.data(), sizeof(Vector3));
-	const auto invRad    = 1.0f / sphere.Radius;
+	const auto invRad = 1.0f / sphere.Radius;
 	const Vector3 center = sphere.Center;
 	for (auto& mesh : model.Subsets)
 		for (auto& v : mesh.Vertices)
@@ -70,8 +70,8 @@ void AssetLibrary::LoadMeshes(const std::filesystem::path& dir)
 		NormalizeVertices(model);
 
 		// Convert to triangle list vbs
-		const uint32_t ssCnt     = model.Subsets.size();
-		const SubsetId ssIdStart = m_SubsetId;
+		const uint32_t ssCnt = model.Subsets.size();
+		const SubsetId ssIdStart = m_SubmeshId;
 		for (const auto& mesh : model.Subsets)
 		{
 			const auto& vb = mesh.Vertices;
@@ -80,42 +80,40 @@ void AssetLibrary::LoadMeshes(const std::filesystem::path& dir)
 			triangles.reserve(ib.size() * 3);
 			for (const uint32_t i : ib)
 				triangles.emplace_back(vb[i]);
-			m_SubsetTriangle.emplace(GetSubsetId(), triangles);
+			m_SubmeshTriangle[GetSubmeshId()] = triangles;
 		}
 
 		// TODO: load materials and build texture list
 		// generate material ids
 		[[maybe_unused]] const uint32_t matCnt = model.Materials.size();
-		const MaterialId matIdStart            = m_MaterialId;
+		const MaterialId matIdStart = m_MaterialId;
 		for (const auto& material : model.Materials)
 		{
 			Material mat;
 			mat.TexIdx = std::rand() % 32;
-			m_Materials.emplace(GetMaterialId(), mat);
+			m_Materials[GetMaterialId()] = mat;
 		}
 
 		// build subset material map
 		for (uint32_t i = 0; i < ssCnt; ++i)
 		{
-			const auto subsetId   = i + ssIdStart;
+			const auto subsetId = i + ssIdStart;
 			const auto materialId = model.Subsets[i].MaterialIndex + matIdStart;
-			m_SubsetMaterialMap.emplace(subsetId, materialId);
+			m_SubmeshMaterialMap[subsetId] = materialId;
 		}
 
 		// build mesh-subset map
-		m_MeshSubsetMap.emplace(GetMeshId(), std::pair(ssIdStart, ssCnt));
+		m_MeshSubmeshMap[GetMeshId()] = { ssIdStart, ssCnt };
 	}
-
-	g_Context.MeshCount = m_MeshId;
 }
 
 void AssetLibrary::MergeTriangleLists()
 {
 	m_MergedTriangleList.clear();
-	const uint32_t maxSubsetVertCnt = std::max_element(m_SubsetTriangle.begin(), m_SubsetTriangle.end(),
+	const uint32_t maxSubsetVertCnt = std::max_element(m_SubmeshTriangle.begin(), m_SubmeshTriangle.end(),
 		[](const auto& lhs, const auto& rhs) { return lhs.second.size() < rhs.second.size(); })->second.size();
-	m_MergedTriangleList.reserve(m_SubsetTriangle.size() * maxSubsetVertCnt * 3);
-	for (const auto& [id, subset] : m_SubsetTriangle)
+	m_MergedTriangleList.reserve(m_SubmeshTriangle.size() * maxSubsetVertCnt * 3);
+	for (const auto& [id, subset] : m_SubmeshTriangle)
 	{
 		std::copy(subset.begin(), subset.end(), std::back_inserter(m_MergedTriangleList));
 		for (uint32_t i = subset.size(); i < maxSubsetVertCnt; ++i)

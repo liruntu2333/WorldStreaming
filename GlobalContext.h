@@ -6,7 +6,6 @@ struct GlobalContext
 {
     std::unique_ptr<ThreadPool> Pool = nullptr;
     size_t ThreadCount = 0;
-    uint32_t MeshCount = 0;
 
     void Initialize(size_t threadCount);
 };
