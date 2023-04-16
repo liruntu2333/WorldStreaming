@@ -5,36 +5,75 @@
 using namespace DirectX;
 using namespace SimpleMath;
 
+constexpr uint32_t MIN_TRIANGLE_COUNT = 16;
+
+namespace
+{
+	uint32_t HighestPowerOf2(uint32_t n)
+	{
+		n |= n >> 1;
+		n |= n >> 2;
+		n |= n >> 4;
+		n |= n >> 8;
+		n |= n >> 16;
+		return n - (n >> 1);
+	}
+}
+
 void AssetLibrary::Initialize()
 {
 	LoadMeshes(m_AssetDir);
 
 	MergeTriangleLists();
+
+	MergeTriangleListsDivide();
 }
 
 std::vector<Material> AssetLibrary::GetMaterialList() const
 {
 	std::vector<Material> materials;
-	materials.reserve(m_Materials.size());
-	for (const auto& [id, mat] : m_Materials)
+	materials.reserve(m_MaterialTbl.size());
+	for (const auto& [id, mat] : m_MaterialTbl)
 		materials.emplace_back(mat);
 	return materials;
 }
 
-std::vector<SubmeshInstance> AssetLibrary::GetSubmeshQueryList(const std::vector<MeshId>& objects) const
+std::vector<SubmeshInstance> AssetLibrary::QuerySubmesh(const std::vector<MeshId>& objects) const
 {
 	std::vector<SubmeshInstance> instances;
 	for (uint32_t i = 0; i < objects.size(); ++i)
 	{
 		const auto mesh = objects[i];
-		const auto [ssStart, ssCnt] = m_MeshSubmeshMap.at(mesh);
+		const auto [ssStart, ssCnt] = m_SubmeshTbl.at(mesh);
 		for (int j = 0; j < ssCnt; ++j)
 		{
-			const SubsetId subset = ssStart + j;
-			instances.emplace_back(subset, m_SubmeshMaterialMap.at(subset), i);
+			const SubmeshId subId = ssStart + j;
+			instances.emplace_back(subId, m_MaterialIdTbl.at(subId), i);
 		}
 	}
 	return instances;
+}
+
+std::vector<DividedSubmeshInstance> AssetLibrary::QuerySubmeshDivide(const std::vector<MeshId>& objects) const
+{
+	std::map<uint32_t, std::vector<SubmeshInstance>> layers;
+	for (uint32_t i = 0; i < objects.size(); ++i)
+	{
+		const auto mesh = objects[i];
+		const auto [ssStart, ssCnt] = m_SubmeshTbl.at(mesh);
+		for (int j = 0; j < ssCnt; ++j)
+		{
+			const SubmeshId subId = ssStart + j;
+			for (const auto& [fCnt, offset] : m_BatchInfo.at(subId))
+				layers[fCnt].emplace_back(offset, m_MaterialIdTbl.at(subId), i);
+		}
+	}
+	std::vector<DividedSubmeshInstance> drawParams;
+	for (auto& [fCnt, ins] : layers)
+	{
+		drawParams.emplace_back(fCnt, std::move(ins));
+	}
+	return drawParams;
 }
 
 void AssetLibrary::NormalizeVertices(AssetImporter::ImporterModelData& model)
@@ -71,7 +110,7 @@ void AssetLibrary::LoadMeshes(const std::filesystem::path& dir)
 
 		// Convert to triangle list vbs
 		const uint32_t ssCnt = model.Subsets.size();
-		const SubsetId ssIdStart = m_SubmeshId;
+		const SubmeshId ssIdStart = m_SubmeshId;
 		for (const auto& mesh : model.Subsets)
 		{
 			const auto& vb = mesh.Vertices;
@@ -80,7 +119,7 @@ void AssetLibrary::LoadMeshes(const std::filesystem::path& dir)
 			triangles.reserve(ib.size() * 3);
 			for (const uint32_t i : ib)
 				triangles.emplace_back(vb[i]);
-			m_SubmeshTriangle[GetSubmeshId()] = triangles;
+			m_TriangleTbl[GetSubmeshId()] = triangles;
 		}
 
 		// TODO: load materials and build texture list
@@ -91,7 +130,7 @@ void AssetLibrary::LoadMeshes(const std::filesystem::path& dir)
 		{
 			Material mat;
 			mat.TexIdx = std::rand() % 32;
-			m_Materials[GetMaterialId()] = mat;
+			m_MaterialTbl[GetMaterialId()] = mat;
 		}
 
 		// build subset material map
@@ -99,21 +138,23 @@ void AssetLibrary::LoadMeshes(const std::filesystem::path& dir)
 		{
 			const auto subsetId = i + ssIdStart;
 			const auto materialId = model.Subsets[i].MaterialIndex + matIdStart;
-			m_SubmeshMaterialMap[subsetId] = materialId;
+			m_MaterialIdTbl[subsetId] = materialId;
 		}
 
 		// build mesh-subset map
-		m_MeshSubmeshMap[GetMeshId()] = { ssIdStart, ssCnt };
+		m_SubmeshTbl[GetMeshId()] = { ssIdStart, ssCnt };
 	}
 }
 
 void AssetLibrary::MergeTriangleLists()
 {
 	m_MergedTriangleList.clear();
-	const uint32_t maxSubsetVertCnt = std::max_element(m_SubmeshTriangle.begin(), m_SubmeshTriangle.end(),
+
+	const uint32_t maxSubsetVertCnt = std::max_element(m_TriangleTbl.begin(), m_TriangleTbl.end(),
 		[](const auto& lhs, const auto& rhs) { return lhs.second.size() < rhs.second.size(); })->second.size();
-	m_MergedTriangleList.reserve(m_SubmeshTriangle.size() * maxSubsetVertCnt * 3);
-	for (const auto& [id, subset] : m_SubmeshTriangle)
+	m_MergedTriangleList.reserve(m_TriangleTbl.size() * maxSubsetVertCnt * 3);
+	std::map batches(m_TriangleTbl.begin(), m_TriangleTbl.end());
+	for (const auto& [id, subset] : batches)
 	{
 		std::copy(subset.begin(), subset.end(), std::back_inserter(m_MergedTriangleList));
 		for (uint32_t i = subset.size(); i < maxSubsetVertCnt; ++i)
@@ -121,4 +162,36 @@ void AssetLibrary::MergeTriangleLists()
 	}
 
 	m_Constants->VertexPerMesh = maxSubsetVertCnt;
+}
+
+void AssetLibrary::MergeTriangleListsDivide()
+{
+	m_MergedTriangleBatches.clear();
+
+	for (const auto& [id, vts] : m_TriangleTbl)
+	{
+		using It = std::vector<Vertex>::const_iterator;
+		std::function<void(It, It)> divide = [&](const It& begin, const It& end)
+		{
+			const uint32_t vtxCnt = std::distance(begin, end);
+			const auto faceCnt = vtxCnt / 3;
+			uint32_t batchStride = HighestPowerOf2(faceCnt);
+			if (faceCnt == 0) return;
+			if (faceCnt <= MIN_TRIANGLE_COUNT)
+			{
+				batchStride = MIN_TRIANGLE_COUNT;
+				std::copy(begin, end, std::back_inserter(m_MergedTriangleBatches[batchStride]));
+				for (int i = vtxCnt; i < MIN_TRIANGLE_COUNT * 3; ++i)
+					m_MergedTriangleBatches[batchStride].emplace_back();
+			}
+			else
+				std::copy_n(begin, batchStride * 3, std::back_inserter(m_MergedTriangleBatches[batchStride]));
+
+			const uint32_t offsetInBatch = m_MergedTriangleBatches[batchStride].size() / (batchStride * 3) - 1;
+			m_BatchInfo[id].emplace_back(batchStride, offsetInBatch);
+
+			if (faceCnt > MIN_TRIANGLE_COUNT) divide(begin + batchStride * 3, end);
+		};
+		divide(vts.begin(), vts.end());
+	}
 }

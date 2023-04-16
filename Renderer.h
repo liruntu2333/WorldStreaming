@@ -1,7 +1,6 @@
 #pragma once
 
 #include <directxtk/CommonStates.h>
-#include <vector>
 
 class Renderer
 {

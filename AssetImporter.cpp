@@ -85,7 +85,7 @@ AssetImporter::ImporterModelData AssetImporter::LoadAsset(const std::filesystem:
 		aiString tex;
 		material->GetTexture(aiTextureType_DIFFUSE, 0, &tex);
 		auto name = material->GetName();
-		if (tex.length != 0)
+		// if (tex.length != 0)
 		{
 			std::filesystem::path texPath = L"./";
 			std::string sName("default");

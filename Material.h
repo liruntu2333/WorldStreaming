@@ -1,5 +1,4 @@
 #pragma once
-#include <directxtk/SimpleMath.h>
 
 // Remember to change in shader as well.
 struct Material

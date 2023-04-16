@@ -11,7 +11,7 @@ struct GpuConstants
     Matrix View;
     Matrix Proj;
     uint32_t VertexPerMesh = 0;
-    uint32_t MeshCount = 0;
+    uint32_t Param = 0;
     uint32_t pad1;
     uint32_t pad2;
 

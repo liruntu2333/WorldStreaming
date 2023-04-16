@@ -4,13 +4,13 @@
 #include <vector>
 #include <directxtk/SimpleMath.h>
 
+#include "AssetLibrary.h"
 #include "CullingSoa.h"
 #include "BvhTree.h"
 #include "GlobalContext.h"
 
 struct ObjectInstance;
 struct SubmeshInstance;
-class AssetLibrary;
 struct GpuConstants;
 struct ObjectId;
 struct StaticObject;
@@ -24,7 +24,8 @@ public:
 	~WorldSystem() = default;
 
 	void Initialize();
-	[[nodiscard]] std::pair<std::vector<SubmeshInstance>, std::vector<ObjectInstance>> Tick(const Camera& camera) const;
+	[[nodiscard]] std::tuple<std::vector<SubmeshInstance>, std::vector<ObjectInstance>, std::vector<
+		DividedSubmeshInstance>> Tick(const Camera& camera) const;
 
 	[[nodiscard]] uint32_t GetObjectCount() const;
 	[[nodiscard]] const std::vector<BvhLinearNode>& GetBvhTree() const;
@@ -36,7 +37,7 @@ private:
 	std::vector<StaticObject> m_Objects {};
 	std::vector<DirectX::SimpleMath::Matrix> m_WorldMatrices {};
 	std::unique_ptr<CullingSoa<OBJECT_MAX>> m_Soa = nullptr;
-	std::unique_ptr<BvhTree> m_Bvh                  = nullptr;
-	std::shared_ptr<GpuConstants> m_Constants       = nullptr;
-	std::shared_ptr<const AssetLibrary> m_AssetLib  = nullptr;
+	std::unique_ptr<BvhTree> m_Bvh = nullptr;
+	std::shared_ptr<GpuConstants> m_Constants = nullptr;
+	std::shared_ptr<const AssetLibrary> m_AssetLib = nullptr;
 };

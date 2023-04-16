@@ -1,21 +1,19 @@
-﻿#include "MergedModelRenderer.h"
+﻿#include "ModelRenderer1.h"
 #include <d3dcompiler.h>
 
-#include "GlobalContext.h"
 #include "MergedSubmeshInstance.h"
 #include "SubmeshInstance.h"
 
 using namespace DirectX;
 
-MergedModelRenderer::MergedModelRenderer(
+ModelRenderer1::ModelRenderer1(
 	ID3D11Device* device, const std::shared_ptr<GpuConstants>& constants,
 	const std::shared_ptr<std::vector<SubmeshInstance>>& subIns,
 	const std::shared_ptr<std::vector<ObjectInstance>>& objIns, const std::shared_ptr<const AssetLibrary>& assetLibrary,
 	const std::shared_ptr<std::vector<MergedSubmeshInstance>>& mergedSubmeshInstances) :
-	ModelRenderer(device, constants, subIns, objIns, assetLibrary), m_MergedSubmeshInstances(mergedSubmeshInstances)
-{}
+	ModelRenderer(device, constants, subIns, objIns, assetLibrary), m_MergedSubmeshInstances(mergedSubmeshInstances) {}
 
-void MergedModelRenderer::Initialize(ID3D11DeviceContext* context)
+void ModelRenderer1::Initialize(ID3D11DeviceContext* context)
 {
 	ModelRenderer::Initialize(context);
 
@@ -28,7 +26,7 @@ void MergedModelRenderer::Initialize(ID3D11DeviceContext* context)
 	ThrowIfFailed(hr);
 }
 
-void MergedModelRenderer::Render(ID3D11DeviceContext* context)
+void ModelRenderer1::Render(ID3D11DeviceContext* context)
 {
 	context->IASetInputLayout(nullptr);
 	context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
@@ -58,7 +56,7 @@ void MergedModelRenderer::Render(ID3D11DeviceContext* context)
 	context->DrawInstanced(m_Constants->VertexPerMesh, m_MergedSubmeshInstances->size(), 0, 0);
 }
 
-void MergedModelRenderer::UpdateBuffer(ID3D11DeviceContext* context)
+void ModelRenderer1::UpdateBuffer(ID3D11DeviceContext* context)
 {
 	m_Vc0->SetData(context, *m_Constants);
 	m_Vt00->SetData(context, m_MergedSubmeshInstances->data(), m_MergedSubmeshInstances->size());

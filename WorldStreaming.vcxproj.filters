@@ -15,7 +15,8 @@
     <ClCompile Include="BvhTree.cpp" />
     <ClCompile Include="DebugRenderer.cpp" />
     <ClCompile Include="AssetLibrary.cpp" />
-    <ClCompile Include="MergedModelRenderer.cpp" />
+    <ClCompile Include="ModelRenderer1.cpp" />
+    <ClCompile Include="ModelRenderer2.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="AlignedVector.h" />
@@ -43,7 +44,8 @@
     <ClInclude Include="SubmeshInstance.h" />
     <ClInclude Include="Material.h" />
     <ClInclude Include="MergedSubmeshInstance.h" />
-    <ClInclude Include="MergedModelRenderer.h" />
+    <ClInclude Include="ModelRenderer1.h" />
+    <ClInclude Include="ModelRenderer2.h" />
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Shader">

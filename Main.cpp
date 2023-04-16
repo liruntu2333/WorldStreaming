@@ -12,7 +12,8 @@
 #include "WorldSystem.h"
 #include "PlaneRenderer.h"
 #include "ModelRenderer.h"
-#include "MergedModelRenderer.h"
+#include "ModelRenderer1.h"
+#include "ModelRenderer2.h"
 #include "Camera.h"
 #include "ObjectInstance.h"
 #include "MergedSubmeshInstance.h"
@@ -35,8 +36,10 @@ namespace
 	std::shared_ptr<std::vector<SubmeshInstance>> g_SubmeshIns = nullptr;
 	std::shared_ptr<std::vector<ObjectInstance>> g_ObjectIns = nullptr;
 	std::shared_ptr<std::vector<MergedSubmeshInstance>> g_MergedIns = nullptr;
+	std::shared_ptr<std::vector<DividedSubmeshInstance>> g_DividedIns = nullptr;
+
 	std::unique_ptr<Renderer> g_PlaneRender = nullptr;
-	std::unique_ptr<MergedModelRenderer> g_ModelRender = nullptr;
+	std::unique_ptr<ModelRenderer2> g_ModelRender = nullptr;
 	std::unique_ptr<Renderer> g_DebugRender = nullptr;
 	std::unique_ptr<Camera> g_Camera = nullptr;
 	std::unique_ptr<WorldSystem> g_WorldSystem = nullptr;
@@ -128,10 +131,11 @@ int main(int, char**)
 		static float timeAvg = 0.0f;
 
 		auto begin = std::chrono::steady_clock::now();
-		auto [subIns, objIns] = g_WorldSystem->Tick(*g_Camera);
+		auto [subIns, objIns, drawArgs] = g_WorldSystem->Tick(*g_Camera);
 		auto end = std::chrono::steady_clock::now();
 		*g_SubmeshIns = std::move(subIns);
 		*g_ObjectIns = std::move(objIns);
+		*g_DividedIns = std::move(drawArgs);
 		timeSum += std::chrono::duration_cast<std::chrono::microseconds>(end - begin).count();
 		if (++loopCnt >= 100)
 		{
@@ -158,10 +162,12 @@ int main(int, char**)
 			g_WorldSystem->GenerateBvh(objectInNode, static_cast<BvhTree::SpitMethod>(splitMethod));
 		if (ImGui::Button("Visualize Bounding")) visualizeBs = !visualizeBs;
 
-		static int mergeIns = 0;
-		ImGui::RadioButton("Left Unmerged", &mergeIns, 0);
+		static int renderMode = 0;
+		ImGui::RadioButton("Left Unmerged", &renderMode, 0);
 		ImGui::SameLine();
-		ImGui::RadioButton("Merge Instance", &mergeIns, 1);
+		ImGui::RadioButton("Merge Instance", &renderMode, 1);
+		ImGui::SameLine();
+		ImGui::RadioButton("Split Vertices", &renderMode, 2);
 
 		ImGui::End();
 
@@ -180,7 +186,7 @@ int main(int, char**)
 		g_PlaneRender->UpdateBuffer(g_pd3dDeviceContext);
 		g_PlaneRender->Render(g_pd3dDeviceContext);
 
-		if(mergeIns)
+		if(renderMode == 1)
 		{
 			g_MergedIns->clear();
 			g_MergedIns->reserve(g_SubmeshIns->size());
@@ -190,13 +196,18 @@ int main(int, char**)
 				const auto objIdx = submesh.ObjectIdx;
 				g_MergedIns->emplace_back(g_ObjectIns->at(objIdx), submesh);
 			}
-			g_ModelRender->UpdateBuffer(g_pd3dDeviceContext);
-			g_ModelRender->Render(g_pd3dDeviceContext);
+			g_ModelRender->ModelRenderer1::UpdateBuffer(g_pd3dDeviceContext);
+			g_ModelRender->ModelRenderer1::Render(g_pd3dDeviceContext);
 		}
-		else
+		else if (renderMode == 0)
 		{
 			g_ModelRender->ModelRenderer::UpdateBuffer(g_pd3dDeviceContext);
 			g_ModelRender->ModelRenderer::Render(g_pd3dDeviceContext);
+		}
+		else
+		{
+			g_ModelRender->UpdateBuffer(g_pd3dDeviceContext);
+			g_ModelRender->Render(g_pd3dDeviceContext);
 		}
 			
 		if (visualizeBs)
@@ -207,8 +218,8 @@ int main(int, char**)
 
 		ImGui_ImplDX11_RenderDrawData(ImGui::GetDrawData());
 
-		g_pSwapChain->Present(1, 0); // Present with vsync
-		//g_pSwapChain->Present(0, 0); // Present without vsync
+		//g_pSwapChain->Present(1, 0); // Present with vsync
+		g_pSwapChain->Present(0, 0); // Present without vsync
 	}
 
 	// Cleanup
@@ -315,6 +326,7 @@ void InitWorldStreaming()
 	g_SubmeshIns = std::make_shared<std::vector<SubmeshInstance>>();
 	g_ObjectIns = std::make_shared<std::vector<ObjectInstance>>();
 	g_MergedIns = std::make_shared<std::vector<MergedSubmeshInstance>>();
+	g_DividedIns = std::make_shared<std::vector<DividedSubmeshInstance>>();
 
 	g_AssetLibrary = std::make_shared<AssetLibrary>(L"./Asset/Mesh", g_GpuConstants);
 	g_AssetLibrary->Initialize();
@@ -322,8 +334,8 @@ void InitWorldStreaming()
 	g_PlaneRender = std::make_unique<PlaneRenderer>(g_pd3dDevice, g_GpuConstants);
 	g_PlaneRender->Initialize(g_pd3dDeviceContext);
 
-	g_ModelRender = std::make_unique<MergedModelRenderer>(g_pd3dDevice, g_GpuConstants, g_SubmeshIns, g_ObjectIns,
-		g_AssetLibrary, g_MergedIns);
+	g_ModelRender = std::make_unique<ModelRenderer2>(g_pd3dDevice, g_GpuConstants, g_SubmeshIns, g_ObjectIns,
+		g_AssetLibrary, g_MergedIns, g_DividedIns);
 	g_ModelRender->Initialize(g_pd3dDeviceContext);
 
 	g_WorldSystem = std::make_unique<WorldSystem>(g_GpuConstants, g_AssetLibrary);

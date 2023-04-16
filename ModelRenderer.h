@@ -35,10 +35,11 @@ public:
 protected:
 	using Vertex = VertexPositionNormalTangentTexture;
 	std::unique_ptr<DirectX::ConstantBuffer<GpuConstants>> m_Vc0 = nullptr;
+
 	std::unique_ptr<DirectX::StructuredBuffer<SubmeshInstance>> m_Vt0 = nullptr;
 	std::unique_ptr<DirectX::StructuredBuffer<ObjectInstance>> m_Vt1 = nullptr;
-
 	std::unique_ptr<DirectX::StructuredBuffer<Vertex>> m_Vt2 = nullptr;
+
 	std::unique_ptr<DirectX::Texture2D> m_Pt0 = nullptr;
 	std::unique_ptr<DirectX::StructuredBuffer<Material>> m_Pt1 = nullptr;
 

@@ -3,16 +3,16 @@
 
 struct MergedSubmeshInstance;
 
-class MergedModelRenderer : public ModelRenderer
+class ModelRenderer1 : public ModelRenderer
 {
 public:
-	MergedModelRenderer(
+	ModelRenderer1(
 		ID3D11Device* device, const std::shared_ptr<GpuConstants>& constants,
 		const std::shared_ptr<std::vector<SubmeshInstance>>& subIns,
 		const std::shared_ptr<std::vector<ObjectInstance>>& objIns,
 		const std::shared_ptr<const AssetLibrary>& assetLibrary,
 		const std::shared_ptr<std::vector<MergedSubmeshInstance>>& mergedSubmeshInstances);
-	~MergedModelRenderer() override = default;
+	~ModelRenderer1() override = default;
 
 	void Initialize(ID3D11DeviceContext* context) override;
 	void Render(ID3D11DeviceContext* context) override;

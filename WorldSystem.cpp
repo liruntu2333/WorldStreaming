@@ -1,5 +1,6 @@
 #include <random>
 #include "WorldSystem.h"
+
 #include "CullingSoa.h"
 #include "Camera.h"
 #include "ObjectInstance.h"
@@ -7,8 +8,6 @@
 #include "BvhTree.h"
 #include "GpuConstants.h"
 #include "AssetLibrary.h"
-#include "ObjectInstance.h"
-
 using namespace DirectX::SimpleMath;
 
 namespace DirectX
@@ -85,7 +84,8 @@ void WorldSystem::Initialize()
 	ComputeWorlds();
 }
 
-std::pair<std::vector<SubmeshInstance>, std::vector<ObjectInstance>> WorldSystem::Tick(const Camera& camera) const
+std::tuple<std::vector<SubmeshInstance>, std::vector<ObjectInstance>, std::vector<DividedSubmeshInstance>>
+WorldSystem::Tick(const Camera& camera) const
 {
 	const auto frustum = camera.GetFrustum();
 	auto visible = m_Bvh->TickCulling(frustum);
@@ -115,9 +115,10 @@ std::pair<std::vector<SubmeshInstance>, std::vector<ObjectInstance>> WorldSystem
 		meshIndices.push_back(m_Objects[i].GeometryIndex);
 		objIns.emplace_back(m_WorldMatrices[i], m_Objects[i].Color);
 	}
-	auto const submeshIns = m_AssetLib->GetSubmeshQueryList(meshIndices);
 
-	return { submeshIns, objIns };
+	auto const submeshIns = m_AssetLib->QuerySubmesh(meshIndices);
+	auto const dividedSmIns = m_AssetLib->QuerySubmeshDivide(meshIndices);
+	return { submeshIns, objIns, dividedSmIns };
 }
 
 uint32_t WorldSystem::GetObjectCount() const

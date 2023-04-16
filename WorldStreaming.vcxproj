@@ -176,8 +176,9 @@
     <ClCompile Include="imgui_impl_dx11.cpp" />
     <ClCompile Include="imgui_impl_win32.cpp" />
     <ClCompile Include="Main.cpp" />
-    <ClCompile Include="MergedModelRenderer.cpp" />
+    <ClCompile Include="ModelRenderer1.cpp" />
     <ClCompile Include="ModelRenderer.cpp" />
+    <ClCompile Include="ModelRenderer2.cpp" />
     <ClCompile Include="PlaneRenderer.cpp" />
     <ClCompile Include="Renderer.cpp" />
     <ClCompile Include="Texture2D.cpp" />
@@ -196,8 +197,9 @@
     <ClInclude Include="imgui_impl_dx11.h" />
     <ClInclude Include="imgui_impl_win32.h" />
     <ClInclude Include="Material.h" />
-    <ClInclude Include="MergedModelRenderer.h" />
+    <ClInclude Include="ModelRenderer1.h" />
     <ClInclude Include="MergedSubmeshInstance.h" />
+    <ClInclude Include="ModelRenderer2.h" />
     <ClInclude Include="ObjectInstance.h" />
     <ClInclude Include="ModelRenderer.h" />
     <ClInclude Include="GpuConstants.h" />
