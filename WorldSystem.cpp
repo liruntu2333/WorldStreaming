@@ -84,8 +84,8 @@ void WorldSystem::Initialize()
 	ComputeWorlds();
 }
 
-std::tuple<std::vector<SubmeshInstance>, std::vector<ObjectInstance>, std::vector<DividedSubmeshInstance>>
-WorldSystem::Tick(const Camera& camera) const
+std::pair<std::vector<ObjectInstance>, std::vector<DividedSubmeshInstance>> WorldSystem::Tick(
+	const Camera& camera) const
 {
 	const auto frustum = camera.GetFrustum();
 	auto visible = m_Bvh->TickCulling(frustum);
@@ -116,9 +116,8 @@ WorldSystem::Tick(const Camera& camera) const
 		objIns.emplace_back(m_WorldMatrices[i], m_Objects[i].Color);
 	}
 
-	auto const submeshIns = m_AssetLib->QuerySubmesh(meshIndices);
 	auto const dividedSmIns = m_AssetLib->QuerySubmeshDivide(meshIndices);
-	return { submeshIns, objIns, dividedSmIns };
+	return { objIns, dividedSmIns };
 }
 
 uint32_t WorldSystem::GetObjectCount() const

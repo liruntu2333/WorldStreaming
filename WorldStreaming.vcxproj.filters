@@ -10,13 +10,11 @@
     <ClCompile Include="PlaneRenderer.cpp" />
     <ClCompile Include="Camera.cpp" />
     <ClCompile Include="AssetImporter.cpp" />
-    <ClCompile Include="ModelRenderer.cpp" />
     <ClCompile Include="WorldSystem.cpp" />
     <ClCompile Include="BvhTree.cpp" />
     <ClCompile Include="DebugRenderer.cpp" />
     <ClCompile Include="AssetLibrary.cpp" />
-    <ClCompile Include="ModelRenderer1.cpp" />
-    <ClCompile Include="ModelRenderer2.cpp" />
+    <ClCompile Include="InstancingRenderer.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="AlignedVector.h" />
@@ -29,12 +27,10 @@
     <ClInclude Include="StructuredBuffer.h" />
     <ClInclude Include="Texture2D.h" />
     <ClInclude Include="Renderer.h" />
-    <ClInclude Include="GpuConstants.h" />
     <ClInclude Include="PlaneRenderer.h" />
     <ClInclude Include="Camera.h" />
     <ClInclude Include="AssetImporter.h" />
     <ClInclude Include="VertexPositionNormalTangentTexture.h" />
-    <ClInclude Include="ModelRenderer.h" />
     <ClInclude Include="WorldSystem.h" />
     <ClInclude Include="StaticObject.h" />
     <ClInclude Include="ObjectInstance.h" />
@@ -44,8 +40,7 @@
     <ClInclude Include="SubmeshInstance.h" />
     <ClInclude Include="Material.h" />
     <ClInclude Include="MergedSubmeshInstance.h" />
-    <ClInclude Include="ModelRenderer1.h" />
-    <ClInclude Include="ModelRenderer2.h" />
+    <ClInclude Include="InstancingRenderer.h" />
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Shader">

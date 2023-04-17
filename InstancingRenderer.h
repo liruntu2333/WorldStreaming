@@ -1,32 +1,28 @@
 #pragma once
-
-#include <filesystem>
 #include <directxtk/BufferHelpers.h>
 
+#include "AssetLibrary.h"
 #include "GlobalContext.h"
+#include "Renderer.h"
 #include "StructuredBuffer.h"
 
-#include "GpuConstants.h"
-#include "Renderer.h"
-#include "Texture2D.h"
+namespace DirectX {
+	class Texture2D;
+}
 
 struct ObjectInstance;
-struct Material;
-struct VertexPositionNormalTangentTexture;
-struct SubmeshInstance;
-class AssetLibrary;
-
 constexpr uint32_t INSTANCE_MAX = OBJECT_MAX << 5;
 
-class ModelRenderer : public Renderer
+class InstancingRenderer : public Renderer
 {
 public:
-	ModelRenderer(
+	InstancingRenderer(
 		ID3D11Device* device, const std::shared_ptr<GpuConstants>& constants,
 		const std::shared_ptr<std::vector<SubmeshInstance>>& subIns,
 		const std::shared_ptr<std::vector<ObjectInstance>>& objIns,
-		const std::shared_ptr<const AssetLibrary>& assetLibrary);
-	~ModelRenderer() override = default;
+		const std::shared_ptr<const AssetLibrary>& assetLibrary,
+		const std::shared_ptr<std::vector<DividedSubmeshInstance>>& divideSmIns);
+	~InstancingRenderer() override = default;
 
 	void Initialize(ID3D11DeviceContext* context) override;
 	void Render(ID3D11DeviceContext* context) override;
@@ -38,7 +34,7 @@ protected:
 
 	std::unique_ptr<DirectX::StructuredBuffer<SubmeshInstance>> m_Vt0 = nullptr;
 	std::unique_ptr<DirectX::StructuredBuffer<ObjectInstance>> m_Vt1 = nullptr;
-	std::unique_ptr<DirectX::StructuredBuffer<Vertex>> m_Vt2 = nullptr;
+	std::unordered_map<uint32_t, std::unique_ptr<DirectX::StructuredBuffer<Vertex>>> m_Vt2 = {};
 
 	std::unique_ptr<DirectX::Texture2D> m_Pt0 = nullptr;
 	std::unique_ptr<DirectX::StructuredBuffer<Material>> m_Pt1 = nullptr;
@@ -50,6 +46,7 @@ protected:
 
 	std::shared_ptr<GpuConstants> m_Constants = nullptr;
 	std::shared_ptr<std::vector<SubmeshInstance>> m_SubmeshInstances = nullptr;
+	std::shared_ptr<std::vector<DividedSubmeshInstance>> m_DividedSubmeshInstances = nullptr;
 	std::shared_ptr<std::vector<ObjectInstance>> m_ObjectInstances = nullptr;
 	std::shared_ptr<const AssetLibrary> m_AssetLibrary = nullptr;
 };

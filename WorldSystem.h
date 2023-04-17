@@ -24,8 +24,8 @@ public:
 	~WorldSystem() = default;
 
 	void Initialize();
-	[[nodiscard]] std::tuple<std::vector<SubmeshInstance>, std::vector<ObjectInstance>, std::vector<
-		DividedSubmeshInstance>> Tick(const Camera& camera) const;
+	[[nodiscard]] std::pair<std::vector<ObjectInstance>, std::vector<DividedSubmeshInstance>> Tick(
+		const Camera& camera) const;
 
 	[[nodiscard]] uint32_t GetObjectCount() const;
 	[[nodiscard]] const std::vector<BvhLinearNode>& GetBvhTree() const;
