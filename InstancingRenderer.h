@@ -29,6 +29,7 @@ public:
 	void UpdateBuffer(ID3D11DeviceContext* context) override;
 
 protected:
+
 	using Vertex = VertexPositionNormalTangentTexture;
 	std::unique_ptr<DirectX::ConstantBuffer<GpuConstants>> m_Vc0 = nullptr;
 

@@ -175,6 +175,7 @@
     <ClCompile Include="GlobalContext.cpp" />
     <ClCompile Include="imgui_impl_dx11.cpp" />
     <ClCompile Include="imgui_impl_win32.cpp" />
+    <ClCompile Include="InstancingRenderer1.cpp" />
     <ClCompile Include="Main.cpp" />
     <ClCompile Include="InstancingRenderer.cpp" />
     <ClCompile Include="PlaneRenderer.cpp" />
@@ -194,6 +195,7 @@
     <ClInclude Include="GlobalContext.h" />
     <ClInclude Include="imgui_impl_dx11.h" />
     <ClInclude Include="imgui_impl_win32.h" />
+    <ClInclude Include="InstancingRenderer1.h" />
     <ClInclude Include="Material.h" />
     <ClInclude Include="MergedSubmeshInstance.h" />
     <ClInclude Include="InstancingRenderer.h" />
@@ -205,6 +207,7 @@
     <ClInclude Include="SubmeshInstance.h" />
     <ClInclude Include="Texture2D.h" />
     <ClInclude Include="ThreadPool.h" />
+    <ClInclude Include="VertexBuffer.h" />
     <ClInclude Include="VertexPositionNormalTangentTexture.h" />
     <ClInclude Include="WorldSystem.h" />
   </ItemGroup>
@@ -220,6 +223,12 @@
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Vertex</ShaderType>
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Vertex</ShaderType>
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Vertex</ShaderType>
+    </FxCompile>
+    <FxCompile Include="Shader\SimpleIaVS.hlsl">
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Vertex</ShaderType>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Vertex</ShaderType>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Vertex</ShaderType>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Vertex</ShaderType>
     </FxCompile>
     <FxCompile Include="Shader\SimplePS.hlsl">
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Pixel</ShaderType>
