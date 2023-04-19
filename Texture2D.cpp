@@ -15,12 +15,19 @@ Texture2D::Texture2D(ID3D11Device* device, const D3D11_TEXTURE2D_DESC& desc) : m
 
 Texture2D::Texture2D(ID3D11Device* device, const std::filesystem::path& path)
 {
-	const auto hr = CreateWICTextureFromFile(device, path.wstring().c_str(), 
+	const auto hr = CreateWICTextureFromFile(device, path.wstring().c_str(),
 		reinterpret_cast<ID3D11Resource**>(m_Texture.GetAddressOf()), m_Srv.GetAddressOf());
 
 	ThrowIfFailed(hr);
 
 	m_Texture->GetDesc(&m_Desc);
+}
+
+Texture2D::Texture2D(ID3D11Device* device, const D3D11_TEXTURE2D_DESC& desc, const void* initData) :
+	m_Desc(desc)
+{
+	const D3D11_SUBRESOURCE_DATA data { initData, m_Desc.Width, 0 };
+	ThrowIfFailed(device->CreateTexture2D(&m_Desc, &data, &m_Texture));
 }
 
 void Texture2D::CreateViews(ID3D11Device* device)
@@ -34,8 +41,8 @@ void Texture2D::CreateViews(ID3D11Device* device)
 	{
 		auto srv = CD3D11_SHADER_RESOURCE_VIEW_DESC(m_Texture.Get(),
 			isMultiSample
-			? D3D11_SRV_DIMENSION_TEXTURE2DMS
-			: D3D11_SRV_DIMENSION_TEXTURE2D);
+				? D3D11_SRV_DIMENSION_TEXTURE2DMS
+				: D3D11_SRV_DIMENSION_TEXTURE2D);
 		auto hr = device->CreateShaderResourceView(m_Texture.Get(), &srv, &m_Srv);
 		ThrowIfFailed(hr);
 	}
@@ -44,8 +51,8 @@ void Texture2D::CreateViews(ID3D11Device* device)
 	{
 		auto rtv = CD3D11_RENDER_TARGET_VIEW_DESC(m_Texture.Get(),
 			isMultiSample
-			? D3D11_RTV_DIMENSION_TEXTURE2DMS
-			: D3D11_RTV_DIMENSION_TEXTURE2D);
+				? D3D11_RTV_DIMENSION_TEXTURE2DMS
+				: D3D11_RTV_DIMENSION_TEXTURE2D);
 		auto hr = device->CreateRenderTargetView(m_Texture.Get(), &rtv, &m_Rtv);
 		ThrowIfFailed(hr);
 	}
@@ -63,8 +70,8 @@ void Texture2D::CreateViews(ID3D11Device* device)
 	{
 		auto dsv = CD3D11_DEPTH_STENCIL_VIEW_DESC(m_Texture.Get(),
 			isMultiSample
-			? D3D11_DSV_DIMENSION_TEXTURE2DMS
-			: D3D11_DSV_DIMENSION_TEXTURE2D);
+				? D3D11_DSV_DIMENSION_TEXTURE2DMS
+				: D3D11_DSV_DIMENSION_TEXTURE2D);
 		auto hr = device->CreateDepthStencilView(m_Texture.Get(), &dsv, &m_Dsv);
 		ThrowIfFailed(hr);
 	}
@@ -72,8 +79,8 @@ void Texture2D::CreateViews(ID3D11Device* device)
 
 void Texture2D::Load(ID3D11Device* device, ID3D11DeviceContext* context, const std::filesystem::path& path)
 {
-	const auto hr = CreateWICTextureFromFile(device, path.wstring().c_str(), 
-		reinterpret_cast<ID3D11Resource**>(m_Texture.ReleaseAndGetAddressOf()), 
+	const auto hr = CreateWICTextureFromFile(device, path.wstring().c_str(),
+		reinterpret_cast<ID3D11Resource**>(m_Texture.ReleaseAndGetAddressOf()),
 		m_Srv.ReleaseAndGetAddressOf());
 
 	ThrowIfFailed(hr);
@@ -95,7 +102,7 @@ Texture2DArray::Texture2DArray(ID3D11Device* device, ID3D11DeviceContext* contex
 	for (const auto& path : paths)
 	{
 		ID3D11Texture2D* texture = nullptr;
-		const auto hr = CreateWICTextureFromFile(device, path.c_str(), 
+		const auto hr = CreateWICTextureFromFile(device, path.c_str(),
 			reinterpret_cast<ID3D11Resource**>(&texture), nullptr);
 		ThrowIfFailed(hr);
 		textures.push_back(texture);
@@ -111,7 +118,7 @@ Texture2DArray::Texture2DArray(ID3D11Device* device, ID3D11DeviceContext* contex
 	ThrowIfFailed(hr);
 	for (UINT i = 0; i < arrayDesc.ArraySize; ++i)
 	{
-		context->CopySubresourceRegion(m_Texture.Get(), 
+		context->CopySubresourceRegion(m_Texture.Get(),
 			D3D11CalcSubresource(0, i, arrayDesc.MipLevels),
 			0, 0, 0, textures[i], 0, nullptr);
 	}

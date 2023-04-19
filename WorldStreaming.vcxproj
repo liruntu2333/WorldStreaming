@@ -176,6 +176,7 @@
     <ClCompile Include="imgui_impl_dx11.cpp" />
     <ClCompile Include="imgui_impl_win32.cpp" />
     <ClCompile Include="InstancingRenderer1.cpp" />
+    <ClCompile Include="InstancingRenderer2.cpp" />
     <ClCompile Include="Main.cpp" />
     <ClCompile Include="InstancingRenderer.cpp" />
     <ClCompile Include="PlaneRenderer.cpp" />
@@ -193,9 +194,11 @@
     <ClInclude Include="D3DHelper.h" />
     <ClInclude Include="DebugRenderer.h" />
     <ClInclude Include="GlobalContext.h" />
+    <ClInclude Include="GpuConstants.h" />
     <ClInclude Include="imgui_impl_dx11.h" />
     <ClInclude Include="imgui_impl_win32.h" />
     <ClInclude Include="InstancingRenderer1.h" />
+    <ClInclude Include="InstancingRenderer2.h" />
     <ClInclude Include="Material.h" />
     <ClInclude Include="MergedSubmeshInstance.h" />
     <ClInclude Include="InstancingRenderer.h" />
@@ -243,6 +246,12 @@
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Vertex</ShaderType>
     </FxCompile>
     <FxCompile Include="Shader\SimpleMergedVS.hlsl">
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Vertex</ShaderType>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Vertex</ShaderType>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Vertex</ShaderType>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Vertex</ShaderType>
+    </FxCompile>
+    <FxCompile Include="Shader\SimpleCompressedVS.hlsl">
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Vertex</ShaderType>
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Vertex</ShaderType>
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Vertex</ShaderType>

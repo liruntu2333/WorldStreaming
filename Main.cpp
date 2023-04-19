@@ -10,7 +10,7 @@
 #include "GlobalContext.h"
 #include "WorldSystem.h"
 #include "PlaneRenderer.h"
-#include "InstancingRenderer1.h"
+#include "InstancingRenderer2.h"
 #include "Camera.h"
 #include "ObjectInstance.h"
 #include "MergedSubmeshInstance.h"
@@ -37,7 +37,7 @@ namespace
 	std::shared_ptr<std::vector<DividedSubmeshInstance>> g_DividedIns = nullptr;
 
 	std::unique_ptr<Renderer> g_PlaneRender = nullptr;
-	std::unique_ptr<InstancingRenderer1> g_MeshRender = nullptr;
+	std::unique_ptr<InstancingRenderer2> g_MeshRender = nullptr;
 	std::unique_ptr<Renderer> g_DebugRender = nullptr;
 	std::unique_ptr<Camera> g_Camera = nullptr;
 	std::unique_ptr<WorldSystem> g_WorldSystem = nullptr;
@@ -159,10 +159,10 @@ int main(int, char**)
 			g_WorldSystem->GenerateBvh(objectInNode, static_cast<BvhTree::SpitMethod>(splitMethod));
 		if (ImGui::Button("Visualize Bounding")) visualizeBs = !visualizeBs;
 
-		static int useIa = 1;
-		ImGui::RadioButton("Use IA", &useIa, 1);
+		static int renderMode = 0;
+		ImGui::RadioButton("32 bit * 11 Vertex", &renderMode, 0);
 		ImGui::SameLine();
-		ImGui::RadioButton("Without IA", &useIa, 0);
+		ImGui::RadioButton("10 bit * 9 + 16 bit * 2 Vertex", &renderMode, 1);
 
 		ImGui::End();
 
@@ -181,15 +181,15 @@ int main(int, char**)
 		g_PlaneRender->UpdateBuffer(g_pd3dDeviceContext);
 		g_PlaneRender->Render(g_pd3dDeviceContext);
 
-		if (useIa == 0)
+		if (renderMode == 0)
 		{
-			g_MeshRender->InstancingRenderer::UpdateBuffer(g_pd3dDeviceContext);
-			g_MeshRender->InstancingRenderer::Render(g_pd3dDeviceContext);
+			g_MeshRender->InstancingRenderer1::UpdateBuffer(g_pd3dDeviceContext);
+			g_MeshRender->InstancingRenderer1::Render(g_pd3dDeviceContext);
 		}
 		else
 		{
-			g_MeshRender->UpdateBuffer(g_pd3dDeviceContext);
-			g_MeshRender->Render(g_pd3dDeviceContext);
+			g_MeshRender->InstancingRenderer2::UpdateBuffer(g_pd3dDeviceContext);
+			g_MeshRender->InstancingRenderer2::Render(g_pd3dDeviceContext);
 		}
 
 		if (visualizeBs)
@@ -315,7 +315,7 @@ void InitWorldStreaming()
 	g_PlaneRender = std::make_unique<PlaneRenderer>(g_pd3dDevice, g_GpuConstants);
 	g_PlaneRender->Initialize(g_pd3dDeviceContext);
 
-	g_MeshRender = std::make_unique<InstancingRenderer1>(g_pd3dDevice, g_GpuConstants, g_SubmeshIns, g_ObjectIns,
+	g_MeshRender = std::make_unique<InstancingRenderer2>(g_pd3dDevice, g_GpuConstants, g_SubmeshIns, g_ObjectIns,
 		g_AssetLibrary, g_DividedIns);
 	g_MeshRender->Initialize(g_pd3dDeviceContext);
 

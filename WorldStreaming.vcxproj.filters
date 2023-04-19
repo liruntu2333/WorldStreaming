@@ -16,6 +16,7 @@
     <ClCompile Include="AssetLibrary.cpp" />
     <ClCompile Include="InstancingRenderer.cpp" />
     <ClCompile Include="InstancingRenderer1.cpp" />
+    <ClCompile Include="InstancingRenderer2.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="AlignedVector.h" />
@@ -44,6 +45,8 @@
     <ClInclude Include="InstancingRenderer.h" />
     <ClInclude Include="VertexBuffer.h" />
     <ClInclude Include="InstancingRenderer1.h" />
+    <ClInclude Include="InstancingRenderer2.h" />
+    <ClInclude Include="GpuConstants.h" />
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Shader">
@@ -67,6 +70,9 @@
       <Filter>Shader</Filter>
     </FxCompile>
     <FxCompile Include="Shader\SimpleIaVS.hlsl">
+      <Filter>Shader</Filter>
+    </FxCompile>
+    <FxCompile Include="Shader\SimpleCompressedVS.hlsl">
       <Filter>Shader</Filter>
     </FxCompile>
   </ItemGroup>
