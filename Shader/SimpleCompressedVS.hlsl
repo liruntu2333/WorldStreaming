@@ -45,7 +45,7 @@ cbuffer PassConstants : register(b0)
 	uint pad2;
 }
 
-Texture2D<uint4> g_CompressedVertices : register(t0);
+StructuredBuffer<uint4> g_CompressedVertices : register(t0);
 StructuredBuffer<ObjectInstance> g_ObjInstances : register(t1);
 
 Vertex DecompressVertex(uint4 compressedV)
@@ -59,7 +59,7 @@ Vertex DecompressVertex(uint4 compressedV)
 	vert.Position = float3(float(p >> 20 & 0x3FF), float(p >> 10 & 0x3FF), float(p & 0x3FF)) / 512.0f - 1.0f;
 	vert.Normal   = float3(float(n >> 20 & 0x3FF), float(n >> 10 & 0x3FF), float(n & 0x3FF)) / 512.0f - 1.0f;
 	vert.Tangent  = float3(float(t >> 20 & 0x3FF), float(t >> 10 & 0x3FF), float(t & 0x3FF)) / 512.0f - 1.0f;
-	vert.TexCoord = float2(float(tc >> 16 & 0xFFFF), float(tc & 0xFFFF)) / 32768.0f;
+	vert.TexCoord = float2(f16tof32(tc), f16tof32(tc >> 16));
 	return vert;
 }
 
@@ -76,7 +76,7 @@ VertexOut main(VertexIn vin)
 
 	ObjectInstance objIns = g_ObjInstances[vin.ObjectId];
 	const uint vi = vin.SubsetId * g_VertexPerMesh + vin.VertexId;
-	const uint4 vCompressed = g_CompressedVertices[int2(vi % 512u, vi / 512u)];
+	const uint4 vCompressed = g_CompressedVertices[vi];
 	Vertex vert = DecompressVertex(vCompressed);
 
 	float4 posW = mul(float4(vert.Position, 1.0f), objIns.World);

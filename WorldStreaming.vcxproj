@@ -203,6 +203,7 @@
     <ClInclude Include="MergedSubmeshInstance.h" />
     <ClInclude Include="InstancingRenderer.h" />
     <ClInclude Include="ObjectInstance.h" />
+    <ClInclude Include="PackedVertex.h" />
     <ClInclude Include="PlaneRenderer.h" />
     <ClInclude Include="Renderer.h" />
     <ClInclude Include="StaticObject.h" />

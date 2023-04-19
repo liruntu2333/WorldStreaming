@@ -47,6 +47,7 @@
     <ClInclude Include="InstancingRenderer1.h" />
     <ClInclude Include="InstancingRenderer2.h" />
     <ClInclude Include="GpuConstants.h" />
+    <ClInclude Include="PackedVertex.h" />
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Shader">

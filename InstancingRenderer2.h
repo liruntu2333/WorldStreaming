@@ -18,6 +18,6 @@ public:
 	void UpdateBuffer(ID3D11DeviceContext* context) override;
 
 protected:
-	std::unordered_map<uint32_t, std::unique_ptr<DirectX::Texture2D>> m_Vt2Compressed {};
+	std::unordered_map<uint32_t, std::unique_ptr<DirectX::StructuredBuffer<DirectX::XMUINT4>>> m_Vt2Compressed {};
 	Microsoft::WRL::ComPtr<ID3D11VertexShader> m_VsCompressed = nullptr;
 };

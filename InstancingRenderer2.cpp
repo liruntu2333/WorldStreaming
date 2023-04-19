@@ -3,6 +3,7 @@
 #include <d3dcompiler.h>
 #include "Texture2D.h"
 #include "GpuConstants.h"
+#include <DirectXPackedVector.h>
 
 using namespace DirectX;
 using namespace SimpleMath;
@@ -44,11 +45,21 @@ void InstancingRenderer2::Initialize(ID3D11DeviceContext* context)
 
 			auto compressUv = [](const Vector2& v)
 			{
-				const Vector2 vc = Vector2(std::fmodf(v.x, 1.0f), std::fmodf(v.y, 1.0f)) * 32768.0f;
-				const uint32_t x = static_cast<uint32_t>(vc.x);
-				const uint32_t y = static_cast<uint32_t>(vc.y);
-				return (x << 16) | y;
+				const PackedVector::XMHALF2 half2(v.x, v.y);
+				return half2.v;
 			};
+
+			//auto compress = [](const Vertex& vtx)
+			//{
+			//	using namespace PackedVector;
+			//	XMHALF2 h1(vtx.Pos.x, vtx.Pos.y);
+			//	XMHALF2 h2(vtx.Pos.z, vtx.Nor.x);
+			//	XMHALF2 h3(vtx.Nor.y, vtx.Nor.z);
+			//	XMHALF2 h4(vtx.Tan.x, vtx.Tan.y);
+			//	XMHALF2 h5(vtx.Tan.z, 0.0f);
+			//	XMHALF2 h6(vtx.Tc.x, vtx.Tc.y);
+			//	return XMUINT4(h1.v, h2.v, h3.v, h4.v);
+			//};
 
 			compressed.emplace_back(
 				compressVec(vtx.Pos), compressVec(vtx.Nor), compressVec(vtx.Tan), compressUv(vtx.Tc));
@@ -59,8 +70,8 @@ void InstancingRenderer2::Initialize(ID3D11DeviceContext* context)
 
 		CD3D11_TEXTURE2D_DESC vtxTex(DXGI_FORMAT_R32G32B32A32_UINT, VERTEX_TEXTURE_WIDTH, height, 1,
 			1, D3D11_BIND_SHADER_RESOURCE, D3D11_USAGE_IMMUTABLE);
-		m_Vt2Compressed[faceStride] = std::make_unique<Texture2D>(m_Device, vtxTex, compressed.data());
-		m_Vt2Compressed[faceStride]->CreateViews(m_Device);
+		m_Vt2Compressed[faceStride] = std::make_unique<StructuredBuffer<XMUINT4>>(m_Device, compressed.data(),
+			compressed.size());
 	}
 }
 
