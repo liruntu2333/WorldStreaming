@@ -17,6 +17,7 @@
     <ClCompile Include="InstancingRenderer.cpp" />
     <ClCompile Include="InstancingRenderer1.cpp" />
     <ClCompile Include="InstancingRenderer2.cpp" />
+    <ClCompile Include="InstancingRenderer3.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="AlignedVector.h" />
@@ -48,6 +49,7 @@
     <ClInclude Include="InstancingRenderer2.h" />
     <ClInclude Include="GpuConstants.h" />
     <ClInclude Include="PackedVertex.h" />
+    <ClInclude Include="InstancingRenderer3.h" />
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Shader">
@@ -74,6 +76,9 @@
       <Filter>Shader</Filter>
     </FxCompile>
     <FxCompile Include="Shader\SimpleCompressedVS.hlsl">
+      <Filter>Shader</Filter>
+    </FxCompile>
+    <FxCompile Include="SimpleCompressed24VS.hlsl">
       <Filter>Shader</Filter>
     </FxCompile>
   </ItemGroup>

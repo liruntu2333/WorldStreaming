@@ -1,4 +1,8 @@
 #include "AssetLibrary.h"
+
+#include <fstream>
+#include <unordered_set>
+
 #include "AssetImporter.h"
 #include "GpuConstants.h"
 
@@ -97,11 +101,18 @@ void AssetLibrary::NormalizeVertices(AssetImporter::ImporterModelData& model)
 
 void AssetLibrary::LoadMeshes(const std::filesystem::path& dir)
 {
+	std::unordered_map<std::wstring, const uint32_t> texIdMap;
+	texIdMap.emplace(L".\\Asset\\Texture\\default.dds", m_TextureId);
+
+	std::unordered_set<std::wstring> texExist;
+	for (const auto& entry : std::filesystem::directory_iterator(L"./Asset/Texture"))
+		texExist.emplace(entry.path().filename().wstring());
+
+	m_TextureTbl[GetTextureId()] = L".\\Asset\\Texture\\default.dds";
+	m_MaterialTbl[GetMaterialId()] = Material();
 	for (const auto& entry : std::filesystem::directory_iterator(dir))
 	{
 		if (!entry.is_regular_file() || entry.path().extension() != ".fbx") continue;
-
-
 		AssetImporter::ImporterModelData model = AssetImporter::LoadAsset(entry.path());
 
 		// TODO: pass normalization transform matrix to culling system instead of normalizing vertices data
@@ -128,9 +139,26 @@ void AssetLibrary::LoadMeshes(const std::filesystem::path& dir)
 		const MaterialId matIdStart = m_MaterialId;
 		for (const auto& material : model.Materials)
 		{
-			Material mat;
-			mat.TexIdx = std::rand() % 32;
-			m_MaterialTbl[GetMaterialId()] = mat;
+			//Material mat;
+			//mat.TexIdx = std::rand() % 32;
+			//m_MaterialTbl[GetMaterialId()] = mat;
+
+			if (material.TexturePath.empty() ||
+				texExist.find(material.TexturePath.wstring()) == texExist.end())
+			{
+				m_MaterialTbl[GetMaterialId()] = Material();
+				continue;
+			}
+
+			if (auto find = texIdMap.find(material.TexturePath.wstring()); find != texIdMap.end())
+				m_MaterialTbl[GetMaterialId()] = Material(find->second);
+			else
+			{
+				const auto texId = GetTextureId();
+				m_TextureTbl[texId] = L".\\Asset\\Texture\\" + material.TexturePath.wstring();
+				texIdMap.emplace(material.TexturePath.wstring(), texId);
+				m_MaterialTbl.emplace(GetMaterialId(), Material(texId));
+			}
 		}
 
 		// build subset material map

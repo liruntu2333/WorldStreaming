@@ -1,5 +1,8 @@
 #define NOMINMAX
 #include "AssetImporter.h"
+
+#include <iostream>
+#include <regex>
 #include <assimp/Importer.hpp>
 #include <assimp/scene.h>
 #include <assimp/postprocess.h>
@@ -41,7 +44,7 @@ AssetImporter::ImporterModelData AssetImporter::LoadAsset(const std::filesystem:
 		const auto meshCnt = node->mNumMeshes;
 		for (uint32_t i = 0; i < meshCnt; ++i)
 		{
-			const auto mesh    = scene->mMeshes[node->mMeshes[i]];
+			const auto mesh = scene->mMeshes[node->mMeshes[i]];
 			const auto vertCnt = mesh->mNumVertices;
 			std::vector<Vertex> vb;
 			for (uint32_t j = 0; j < vertCnt; ++j)
@@ -49,7 +52,7 @@ AssetImporter::ImporterModelData AssetImporter::LoadAsset(const std::filesystem:
 				const auto& pos = mesh->mVertices[j];
 				const auto& nor = mesh->mNormals[j];
 				const auto& tan = mesh->mTangents[j];
-				const auto& tc  = mesh->mTextureCoords[0][j];
+				const auto& tc = mesh->mTextureCoords[0][j];
 				vb.emplace_back(
 					Vector3::Transform(Vector3(pos.x, pos.y, pos.z), t),
 					Vector3(nor.x, nor.y, nor.z),
@@ -85,11 +88,19 @@ AssetImporter::ImporterModelData AssetImporter::LoadAsset(const std::filesystem:
 		aiString tex;
 		material->GetTexture(aiTextureType_DIFFUSE, 0, &tex);
 		auto name = material->GetName();
-		// if (tex.length != 0)
+
+		std::string strName(tex.C_Str());
+		std::regex reg("[0-9|a-z|_]+\\.dds");
+		std::smatch sm;
+		if (std::regex_search(strName, sm, reg))
 		{
-			std::filesystem::path texPath = L"./";
-			std::string sName("default");
-			model.Materials.emplace_back(sName, texPath);
+			const auto sTexPath = sm.str();
+			std::filesystem::path texPath = std::wstring(sTexPath.begin(), sTexPath.end());
+			model.Materials.emplace_back(name.C_Str(), texPath);
+		}
+		else
+		{
+			model.Materials.emplace_back(name.C_Str(), std::filesystem::path());
 		}
 	}
 

@@ -16,6 +16,7 @@ public:
 	virtual void Initialize(ID3D11DeviceContext* context) = 0;
 	virtual void Render(ID3D11DeviceContext* context) = 0;
 	virtual void UpdateBuffer(ID3D11DeviceContext* context) = 0;
+	virtual uint32_t GetVertexBufferByteSize() { return 0; }
 
 	static std::unique_ptr<DirectX::CommonStates> s_CommonStates;
 

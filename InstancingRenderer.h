@@ -6,7 +6,8 @@
 #include "Renderer.h"
 #include "StructuredBuffer.h"
 
-namespace DirectX {
+namespace DirectX
+{
 	class Texture2D;
 }
 
@@ -27,9 +28,9 @@ public:
 	void Initialize(ID3D11DeviceContext* context) override;
 	void Render(ID3D11DeviceContext* context) override;
 	void UpdateBuffer(ID3D11DeviceContext* context) override;
+	uint32_t GetVertexBufferByteSize() override;
 
 protected:
-
 	using Vertex = VertexPositionNormalTangentTexture;
 	std::unique_ptr<DirectX::ConstantBuffer<GpuConstants>> m_Vc0 = nullptr;
 

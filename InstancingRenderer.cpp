@@ -5,6 +5,10 @@
 #include "ObjectInstance.h"
 #include "Texture2D.h"
 #include "GpuConstants.h"
+#include <numeric>
+#include <regex>
+#include <set>
+#include <unordered_set>
 
 using namespace DirectX;
 
@@ -28,7 +32,13 @@ void InstancingRenderer::Initialize(ID3D11DeviceContext* context)
 	for (const auto& [faceStride, triList] : dividedTriList)
 		m_Vt2[faceStride] = std::make_unique<StructuredBuffer<Vertex>>(m_Device, triList.data(), triList.size());
 
-	m_Pt0 = std::make_unique<Texture2DArray>(m_Device, context, L"./Asset/Texture");
+
+	const auto& texTbl = m_AssetLibrary->GetTextureTable();
+	std::vector<std::filesystem::path> paths;
+	for (const auto& [id, path] : texTbl)
+		paths.push_back(path);
+	m_Pt0 = std::make_unique<Texture2DArray>(m_Device, context, paths);
+
 	m_Pt0->CreateViews(m_Device);
 	m_Pt1 = std::make_unique<StructuredBuffer<Material>>(m_Device, matBuff.data(), matBuff.size());
 
@@ -91,4 +101,10 @@ void InstancingRenderer::Render(ID3D11DeviceContext* context)
 void InstancingRenderer::UpdateBuffer(ID3D11DeviceContext* context)
 {
 	m_Vt1->SetData(context, m_ObjectInstances->data(), m_ObjectInstances->size());
+}
+
+uint32_t InstancingRenderer::GetVertexBufferByteSize()
+{
+	return std::accumulate(m_Vt2.begin(), m_Vt2.end(), 0,
+		[](uint32_t size, const auto& list) { return size + list.second->m_Capacity; }) * sizeof(Vertex);
 }

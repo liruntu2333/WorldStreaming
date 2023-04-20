@@ -47,6 +47,7 @@ namespace DirectX
 	{
 	public:
 		Texture2DArray(ID3D11Device* device, ID3D11DeviceContext* context, const std::filesystem::path& dir);
+		Texture2DArray(ID3D11Device* device, ID3D11DeviceContext* context, const std::vector<std::filesystem::path>& paths);
 		~Texture2DArray() override = default;
 
 		void CreateViews(ID3D11Device* device) override;

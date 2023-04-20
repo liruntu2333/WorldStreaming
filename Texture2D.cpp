@@ -3,6 +3,7 @@
 #include <cassert>
 
 #include "D3DHelper.h"
+#include <directxtk/DDSTextureLoader.h>
 #include <directxtk/WICTextureLoader.h>
 
 using namespace DirectX;
@@ -102,10 +103,14 @@ Texture2DArray::Texture2DArray(ID3D11Device* device, ID3D11DeviceContext* contex
 	for (const auto& path : paths)
 	{
 		ID3D11Texture2D* texture = nullptr;
-		const auto hr = CreateWICTextureFromFile(device, path.c_str(),
-			reinterpret_cast<ID3D11Resource**>(&texture), nullptr);
-		ThrowIfFailed(hr);
-		textures.push_back(texture);
+		if (path.extension() == ".dds")
+			ThrowIfFailed(CreateDDSTextureFromFile(device, path.c_str(),
+				reinterpret_cast<ID3D11Resource**>(&texture), nullptr));
+		else
+			ThrowIfFailed(CreateWICTextureFromFile(device, path.c_str(),
+				reinterpret_cast<ID3D11Resource**>(&texture), nullptr));
+
+		textures.emplace_back(texture);
 	}
 
 	D3D11_TEXTURE2D_DESC arrayDesc;
@@ -125,6 +130,51 @@ Texture2DArray::Texture2DArray(ID3D11Device* device, ID3D11DeviceContext* contex
 	m_Texture->GetDesc(&m_Desc);
 	Texture2DArray::CreateViews(device);
 	context->GenerateMips(m_Srv.Get());
+
+	for (const auto& texture : textures)
+	{
+		texture->Release();
+	}
+}
+
+Texture2DArray::Texture2DArray(
+	ID3D11Device* device, ID3D11DeviceContext* context, const std::vector<std::filesystem::path>& paths)
+{
+	std::vector<ID3D11Texture2D*> textures;
+	textures.reserve(paths.size());
+
+	for (const auto& path : paths)
+	{
+		ID3D11Texture2D* texture = nullptr;
+		if (path.extension() == ".dds")
+			ThrowIfFailed(CreateDDSTextureFromFile(device, path.c_str(),
+				reinterpret_cast<ID3D11Resource**>(&texture), nullptr));
+		else
+			ThrowIfFailed(CreateWICTextureFromFile(device, path.c_str(),
+				reinterpret_cast<ID3D11Resource**>(&texture), nullptr));
+
+		textures.emplace_back(texture);
+	}
+
+	D3D11_TEXTURE2D_DESC arrayDesc;
+	textures[0]->GetDesc(&arrayDesc);
+	arrayDesc.ArraySize = static_cast<UINT>(textures.size());
+	arrayDesc.BindFlags = D3D11_BIND_SHADER_RESOURCE;
+	const auto mips = arrayDesc.MipLevels;
+	ThrowIfFailed(device->CreateTexture2D(&arrayDesc, nullptr, &m_Texture));
+	for (UINT i = 0; i < textures.size(); ++i)
+	{
+		for (UINT j = 0; j < mips; ++j)
+		{
+			context->CopySubresourceRegion(
+				m_Texture.Get(), D3D11CalcSubresource(j, i, mips),
+				0, 0, 0, 
+				textures[i], D3D11CalcSubresource(j, 0, mips), 
+				nullptr);
+		}
+	}
+	m_Texture->GetDesc(&m_Desc);
+	Texture2DArray::CreateViews(device);
 
 	for (const auto& texture : textures)
 	{

@@ -37,10 +37,10 @@ public:
 	[[nodiscard]] std::vector<Material> GetMaterialList() const;
 	[[nodiscard]] std::vector<SubmeshInstance> QuerySubmesh(const std::vector<MeshId>& objects) const;
 
-
 	[[nodiscard]] std::vector<DividedSubmeshInstance> QuerySubmeshDivide(const std::vector<MeshId>& objects) const;
 	[[nodiscard]] const auto& GetMergedTriangleList() const { return m_MergedTriangleList; }
 	[[nodiscard]] const auto& GetMergedTriangleListDivide() const { return m_MergedTriangleBatches; }
+	[[nodiscard]] const auto& GetTextureTable() const { return m_TextureTbl; }
 
 	auto GetMeshCount() const { return m_SubmeshTbl.size(); }
 
@@ -79,6 +79,7 @@ private:
 	std::unordered_map<SubmeshId, TriangleBatch> m_TriangleTbl {};
 	std::unordered_map<SubmeshId, MaterialId> m_MaterialIdTbl {};
 	std::unordered_map<MaterialId, Material> m_MaterialTbl {};
+	std::map<TextureId, std::filesystem::path> m_TextureTbl {};
 
 	// stride = 16, 32, 64, ... triangles
 	std::map<FacePerSubset, TriangleBatch> m_MergedTriangleBatches {};
@@ -86,7 +87,6 @@ private:
 	std::unordered_map<SubmeshId, std::vector<LocationInBatch>> m_BatchInfo {};
 
 	TriangleBatch m_MergedTriangleList {};
-	std::vector<std::filesystem::path> m_MergedTextures {};
 
 	uint32_t m_MeshId = 0;
 	uint32_t m_SubmeshId = 0;
