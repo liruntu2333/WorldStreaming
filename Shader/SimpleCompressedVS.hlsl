@@ -48,27 +48,36 @@ cbuffer PassConstants : register(b0)
 StructuredBuffer<uint4> g_CompressedVertices : register(t0);
 StructuredBuffer<ObjectInstance> g_ObjInstances : register(t1);
 
+float3 DecodeOctahedron(uint n)
+{
+	float2 octahedron = float2(n >> 8 & 0xFF, n & 0xFF) / 128.0f - 1.0f;
+	float3 normal = float3(octahedron, 1 - dot(1, abs(octahedron)));
+	if (normal.z < 0)
+	{
+		normal.xy = (1 - abs(normal.yx)) * (normal.xy >= 0 ? float2(1, 1) : float2(-1, -1));
+	}
+	return normalize(normal);
+}
+
+void DecodeNormalAndTangent(in uint nt, out float3 normal, out float3 tangent)
+{
+	normal = DecodeOctahedron(nt >> 16 & 0xFFFF);
+	tangent = DecodeOctahedron(nt & 0xFFFF);
+}
+
 Vertex DecompressVertex(uint4 compressedV)
 {
 	Vertex vert;
-	const uint p = compressedV.x;
-	const uint n = compressedV.y;
-	const uint t = compressedV.z;
-	const uint tc = compressedV.w;
+	const uint vp1 = compressedV.x;
+	const uint vp2 = compressedV.y;
+	const uint vnt = compressedV.z;
+	const uint vtc = compressedV.w;
 
-	vert.Position = float3(float(p >> 20 & 0x3FF), float(p >> 10 & 0x3FF), float(p & 0x3FF)) / 512.0f - 1.0f;
-	vert.Normal   = float3(float(n >> 20 & 0x3FF), float(n >> 10 & 0x3FF), float(n & 0x3FF)) / 512.0f - 1.0f;
-	vert.Tangent  = float3(float(t >> 20 & 0x3FF), float(t >> 10 & 0x3FF), float(t & 0x3FF)) / 512.0f - 1.0f;
-	vert.TexCoord = float2(f16tof32(tc), f16tof32(tc >> 16));
+	vert.Position = float3(vp1 >> 16 & 0xFFFF, vp1 & 0xFFFF, vp2 >> 16 & 0xFFFF) / 32768.0f - 1.0f;
+	DecodeNormalAndTangent(vnt, vert.Normal, vert.Tangent);
+	vert.TexCoord = (float2(vtc >> 16 & 0xFFFF, vtc & 0xFFFF) / 32768.0f - 1.0f) * 8.0f;
 	return vert;
 }
-
-const uint4 s_Test[] =
-{
-	uint4(0x000FFE00, 0, 0, 0),
-	uint4(0x3FFFFE00, 0, 0, 0),
-	uint4(0x00000200, 0, 0, 0),
-};
 
 VertexOut main(VertexIn vin)
 {
@@ -80,7 +89,6 @@ VertexOut main(VertexIn vin)
 	Vertex vert = DecompressVertex(vCompressed);
 
 	float4 posW = mul(float4(vert.Position, 1.0f), objIns.World);
-	//float4 posW = float4(vert.Position, 1.0f);
 	const float3 normW = mul(vert.Normal, (float3x3)objIns.World);
 	const float4 posH = mul(posW, g_ViewProj);
 

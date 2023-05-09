@@ -116,7 +116,7 @@ Texture2DArray::Texture2DArray(ID3D11Device* device, ID3D11DeviceContext* contex
 	D3D11_TEXTURE2D_DESC arrayDesc;
 	textures[0]->GetDesc(&arrayDesc);
 	arrayDesc.ArraySize = static_cast<UINT>(textures.size());
-	arrayDesc.MipLevels = 9;
+	arrayDesc.MipLevels = -1;
 	arrayDesc.BindFlags = D3D11_BIND_SHADER_RESOURCE | D3D11_BIND_RENDER_TARGET;
 	arrayDesc.MiscFlags = D3D11_RESOURCE_MISC_GENERATE_MIPS;
 	const auto hr = device->CreateTexture2D(&arrayDesc, nullptr, &m_Texture);

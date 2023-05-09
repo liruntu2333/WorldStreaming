@@ -4,6 +4,7 @@
 #include "Texture2D.h"
 #include "GpuConstants.h"
 #include <DirectXPackedVector.h>
+#include <iostream>
 #include <numeric>
 
 using namespace DirectX;
@@ -30,37 +31,90 @@ void InstancingRenderer2::Initialize(ID3D11DeviceContext* context)
 	const auto& divided = m_AssetLibrary->GetMergedTriangleListDivide();
 	for (const auto& [faceStride, vts] : divided)
 	{
-		std::vector<XMUINT4> compressed;
-		compressed.reserve(vts.size());
-		for (const auto& vtx : vts)
+		std::vector<XMUINT4> encoded;
+		encoded.reserve(vts.size());
+		for (const auto& v : vts)
 		{
-			auto compressVec = [](const Vector3& v)
+			// required to be normalized -1, 1
+			auto encodePos = [](Vector3 p) -> uint64_t
 			{
-				Vector3 vc = (v * 512.0f + Vector3(512.0f));
-				vc.Clamp(Vector3(0.0f), Vector3(1023.0f), vc);
-				const uint32_t x = static_cast<uint32_t>(vc.x);
-				const uint32_t y = static_cast<uint32_t>(vc.y);
-				const uint32_t z = static_cast<uint32_t>(vc.z);
-				return (x << 20) | (y << 10) | z;
+				p = p * 32768.0f + Vector3(32768.0f);
+				p.Clamp(Vector3(0.0f), Vector3(65535.0f), p);
+				const uint64_t x = p.x;
+				const uint64_t y = p.y;
+				const uint64_t z = p.z;
+				return x << 48 | y << 32 | z << 16;
 			};
 
-			auto compressUv = [](const Vector2& v)
+			auto encodeOctahedron = [](Vector3 n) -> uint16_t
 			{
-				const PackedVector::XMHALF2 half2(v.x, v.y);
-				return half2.v;
+				const float absN = std::abs(n.x) + std::abs(n.y) + std::abs(n.z);
+				n.x /= absN;
+				n.y /= absN;
+				if (n.z <= 0.0f)
+				{
+					const float newX = (1.0f - std::abs(n.y)) * std::copysignf(1.0f, n.x);
+					const float newY = (1.0f - std::abs(n.x)) * std::copysignf(1.0f, n.y);
+					n.x = newX;
+					n.y = newY;
+				}
+
+				Vector2 mappedN = Vector2(n.x, n.y) * 128.0f + Vector2(128.0f);
+				mappedN.Clamp(Vector2(0.0f), Vector2(255.0f), mappedN);
+				const uint16_t mappedNx = mappedN.x;
+				const uint16_t mappedNy = mappedN.y;
+				return mappedNx << 8 | mappedNy;
 			};
 
-			compressed.emplace_back(
-				compressVec(vtx.Pos), compressVec(vtx.Nor), compressVec(vtx.Tan), compressUv(vtx.Tc));
+			// required to be in -8, 8
+			auto encodeUv = [](Vector2 uv) -> uint32_t
+			{
+				uv /= 8.0f;
+				uv = uv * 32768.0f + Vector2(32768.0f);
+				uv.Clamp(Vector2(0.0f), Vector2(65535.0f), uv);
+				const uint32_t tu = uv.x;
+				const uint32_t tv = uv.y;
+				return tu << 16 | tv;
+			};
+
+			const auto ep = encodePos(v.Pos);
+			const auto en = encodeOctahedron(v.Nor);
+			const auto et = encodeOctahedron(v.Tan);
+			const auto euv = encodeUv(v.Tc);
+
+			encoded.emplace_back(
+				static_cast<uint32_t>(ep >> 32 & 0xFFFFFFFF),
+				static_cast<uint32_t>(ep & 0xFFFFFFFF),
+				static_cast<uint32_t>(en) << 16 | static_cast<uint32_t>(et),
+				euv);
+
+			//auto decodeOctahedron = [](uint16_t n) -> Vector3
+			//{
+			//	const Vector2 oct = Vector2(n >> 8 & 0xff, n & 0xff) / 128.0f - Vector2(1.0f);
+			//	auto nor = Vector3(oct.x, oct.y, 1.0f - std::abs(oct.x) - std::abs(oct.y));
+			//	if (nor.z < 0)
+			//	{
+			//		const float newX = (1.0f - std::abs(nor.y)) * std::copysignf(1.0f, nor.x);
+			//		const float newY = (1.0f - std::abs(nor.x)) * std::copysignf(1.0f, nor.y);
+			//		nor.x = newX;
+			//		nor.y = newY;
+			//	}
+			//	nor.Normalize();
+			//	return nor;
+			//};
+
+			//const auto ent = encoded.back().z;
+			//Vector3 decNor = decodeOctahedron(ent >> 16 & 0xFFFF);
+			//Vector3 decTan = decodeOctahedron(ent & 0xFFFF);
 		}
 
-		const UINT height = (compressed.size() + VERTEX_TEXTURE_WIDTH - 1) / VERTEX_TEXTURE_WIDTH;
-		compressed.resize(height * VERTEX_TEXTURE_WIDTH, XMUINT4(0, 0, 0, 0));
+		const UINT height = (encoded.size() + VERTEX_TEXTURE_WIDTH - 1) / VERTEX_TEXTURE_WIDTH;
+		encoded.resize(height * VERTEX_TEXTURE_WIDTH, XMUINT4(0, 0, 0, 0));
 
 		CD3D11_TEXTURE2D_DESC vtxTex(DXGI_FORMAT_R32G32B32A32_UINT, VERTEX_TEXTURE_WIDTH, height, 1,
 			1, D3D11_BIND_SHADER_RESOURCE, D3D11_USAGE_IMMUTABLE);
-		m_Vt2C16B[faceStride] = std::make_unique<StructuredBuffer<XMUINT4>>(m_Device, compressed.data(),
-			compressed.size());
+		m_Vt2C16B[faceStride] = std::make_unique<StructuredBuffer<XMUINT4>>(m_Device, encoded.data(),
+			encoded.size());
 	}
 }
 
