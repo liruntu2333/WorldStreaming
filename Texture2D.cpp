@@ -24,10 +24,10 @@ Texture2D::Texture2D(ID3D11Device* device, const std::filesystem::path& path)
 	m_Texture->GetDesc(&m_Desc);
 }
 
-Texture2D::Texture2D(ID3D11Device* device, const D3D11_TEXTURE2D_DESC& desc, const void* initData) :
+Texture2D::Texture2D(ID3D11Device* device, const D3D11_TEXTURE2D_DESC& desc, const void* initData, uint32_t systemPitch) :
 	m_Desc(desc)
 {
-	const D3D11_SUBRESOURCE_DATA data { initData, m_Desc.Width, 0 };
+	const D3D11_SUBRESOURCE_DATA data { initData, systemPitch, 0 };
 	ThrowIfFailed(device->CreateTexture2D(&m_Desc, &data, &m_Texture));
 }
 

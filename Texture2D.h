@@ -11,7 +11,7 @@ namespace DirectX
 	public:
 		Texture2D(ID3D11Device* device, const D3D11_TEXTURE2D_DESC& desc);
 		Texture2D(ID3D11Device* device, const std::filesystem::path& path);
-		Texture2D(ID3D11Device* device, const D3D11_TEXTURE2D_DESC& desc, const void* initData);
+		Texture2D(ID3D11Device* device, const D3D11_TEXTURE2D_DESC& desc, const void* initData, uint32_t systemPitch);
 		Texture2D() = default;
 		virtual ~Texture2D() = default;
 

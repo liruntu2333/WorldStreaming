@@ -20,5 +20,6 @@ public:
 
 protected:
 	std::unordered_map<uint32_t, std::unique_ptr<DirectX::StructuredBuffer<DirectX::XMUINT4>>> m_Vt2C16B {};
+	std::unordered_map<uint32_t, std::unique_ptr<DirectX::Texture2D>> m_Vt2C16BT {};
 	Microsoft::WRL::ComPtr<ID3D11VertexShader> m_VsC16B = nullptr;
 };

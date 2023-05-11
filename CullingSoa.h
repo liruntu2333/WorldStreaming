@@ -110,7 +110,7 @@ std::vector<uint32_t> CullingSoa<Capacity>::ComputeVector(const DirectX::Boundin
     }
 
     using FloatBatch = xsimd::batch<float, Architecture>;
-    using BoolBatch = xsimd::batch_bool<float, Architecture>;
+    using BoolBatch = typename FloatBatch::batch_bool_type;
     const uint32_t stride = FloatBatch::size;
 
     auto dispatch = [stride, &planes, this](uint32_t from, uint32_t length)
@@ -127,7 +127,8 @@ std::vector<uint32_t> CullingSoa<Capacity>::ComputeVector(const DirectX::Boundin
                 dist += FloatBatch::load_aligned(m_PositionX + i) * plane.x;
                 dist += FloatBatch::load_aligned(m_PositionY + i) * plane.y;
                 dist += FloatBatch::load_aligned(m_PositionZ + i) * plane.z;
-                visible = visible && dist < FloatBatch::load_aligned(m_Radius + i);
+                BoolBatch const result = dist < FloatBatch::load_aligned(m_Radius + i);
+                visible = visible & result;
             }
             visible.store_aligned(m_IsVisible + i);
         }

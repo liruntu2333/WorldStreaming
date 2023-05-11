@@ -112,9 +112,12 @@ void InstancingRenderer2::Initialize(ID3D11DeviceContext* context)
 		encoded.resize(height * VERTEX_TEXTURE_WIDTH, XMUINT4(0, 0, 0, 0));
 
 		CD3D11_TEXTURE2D_DESC vtxTex(DXGI_FORMAT_R32G32B32A32_UINT, VERTEX_TEXTURE_WIDTH, height, 1,
-			1, D3D11_BIND_SHADER_RESOURCE, D3D11_USAGE_IMMUTABLE);
+			1, D3D11_BIND_SHADER_RESOURCE, D3D11_USAGE_DEFAULT);
 		m_Vt2C16B[faceStride] = std::make_unique<StructuredBuffer<XMUINT4>>(m_Device, encoded.data(),
 			encoded.size());
+		m_Vt2C16BT[faceStride] = std::make_unique<Texture2D>(m_Device, vtxTex, encoded.data(),
+			vtxTex.Width * sizeof(XMUINT4));
+		m_Vt2C16BT[faceStride]->CreateViews(m_Device);
 	}
 }
 
@@ -155,7 +158,7 @@ void InstancingRenderer2::Render(ID3D11DeviceContext* context)
 		constexpr UINT stride = sizeof(SubmeshInstance), offset = 0;
 		context->IASetVertexBuffers(0, 1, &vb, &stride, &offset);
 
-		ID3D11ShaderResourceView* srv = m_Vt2C16B[faceStride]->GetSrv();
+		ID3D11ShaderResourceView* srv = m_Vt2C16BT[faceStride]->GetSrv();
 		context->VSSetShaderResources(0, 1, &srv);
 
 		context->DrawInstanced(m_Constants->VertexPerMesh, insBuff.size(), 0, 0);

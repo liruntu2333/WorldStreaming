@@ -45,7 +45,7 @@ cbuffer PassConstants : register(b0)
 	uint pad2;
 }
 
-StructuredBuffer<uint4> g_CompressedVertices : register(t0);
+Texture2D<uint4> g_CompressedVertices : register(t0);
 StructuredBuffer<ObjectInstance> g_ObjInstances : register(t1);
 
 float3 DecodeOctahedron(uint n)
@@ -84,8 +84,8 @@ VertexOut main(VertexIn vin)
 	VertexOut vout;
 
 	ObjectInstance objIns = g_ObjInstances[vin.ObjectId];
-	const uint vi = vin.SubsetId * g_VertexPerMesh + vin.VertexId;
-	const uint4 vCompressed = g_CompressedVertices[vi];
+	const uint globalVi = vin.SubsetId * g_VertexPerMesh + vin.VertexId;
+	const uint4 vCompressed = g_CompressedVertices[uint2(globalVi % 512, globalVi / 512)];
 	Vertex vert = DecompressVertex(vCompressed);
 
 	float4 posW = mul(float4(vert.Position, 1.0f), objIns.World);
