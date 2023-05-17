@@ -9,10 +9,10 @@ struct PixelIn
 	nointerpolation uint Color : PackedColor;
 };
 
-struct Material
-{
-	uint TextureId;
-};
+//struct Material
+//{
+//	uint TextureId;
+//};
 
 float4 LoadColor(uint col)
 {
@@ -71,7 +71,7 @@ float3 evalSh(float3 _dir)
 
 
 Texture2DArray g_Textures : register( t0 );
-StructuredBuffer<Material> g_Materials : register(t1);
+//StructuredBuffer<Material> g_Materials : register(t1);
 SamplerState g_Sampler : register( s0 );
 
 float4 main( PixelIn pin ) : SV_TARGET
@@ -79,7 +79,7 @@ float4 main( PixelIn pin ) : SV_TARGET
 	//const float3 light = float3(0.0f, 1.0f, 0.0f);
 	//const float4 k = LoadColor(pin.Color);
 	//float4 color = diffuse * (saturate(dot(light, normalize(pin.Normal))) + float4(0.14f, 0.14f, 0.14f, 1.0f))/* * k*/;
-	const float4 albedo = g_Textures.Sample(g_Sampler, float3(pin.TexCoord, g_Materials[pin.MatIdx].TextureId));
+	const float4 albedo = g_Textures.Sample(g_Sampler, float3(pin.TexCoord, pin.MatIdx));
 	float3 color = saturate(evalSh(normalize(pin.Normal)) * albedo.xyz * 1.5);
 	return float4(color.xyz, albedo.w);
 }

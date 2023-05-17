@@ -25,7 +25,7 @@ public:
 
 	void Initialize();
 	[[nodiscard]] std::pair<std::vector<ObjectInstance>, std::vector<DividedSubmeshInstance>> Tick(
-		const Camera& camera) const;
+		const Camera& camera, bool freezeFrustum) const;
 
 	[[nodiscard]] uint32_t GetObjectCount() const;
 	[[nodiscard]] const std::vector<BvhLinearNode>& GetBvhTree() const;

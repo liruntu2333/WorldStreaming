@@ -24,7 +24,7 @@ void InstancingRenderer::Initialize(ID3D11DeviceContext* context)
 {
 	m_Vc0 = std::make_unique<ConstantBuffer<GpuConstants>>(m_Device);
 
-	auto matBuff = m_AssetLibrary->GetMaterialList();
+	//auto matBuff = m_AssetLibrary->GetMaterialList();
 	m_Vt0 = std::make_unique<StructuredBuffer<SubmeshInstance>>(m_Device, INSTANCE_MAX);
 	m_Vt1 = std::make_unique<StructuredBuffer<ObjectInstance>>(m_Device, OBJECT_MAX);
 
@@ -40,7 +40,7 @@ void InstancingRenderer::Initialize(ID3D11DeviceContext* context)
 	m_Pt0 = std::make_unique<Texture2DArray>(m_Device, context, paths);
 
 	m_Pt0->CreateViews(m_Device);
-	m_Pt1 = std::make_unique<StructuredBuffer<Material>>(m_Device, matBuff.data(), matBuff.size());
+	//m_Pt1 = std::make_unique<StructuredBuffer<Material>>(m_Device, matBuff.data(), matBuff.size());
 
 	Microsoft::WRL::ComPtr<ID3DBlob> blob;
 	ThrowIfFailed(D3DReadFileToBlob(L"./shader/SimpleVS.cso", &blob));

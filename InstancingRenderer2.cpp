@@ -4,13 +4,32 @@
 #include "Texture2D.h"
 #include "GpuConstants.h"
 #include <DirectXPackedVector.h>
+#include <fstream>
 #include <iostream>
 #include <numeric>
+#include <string>
+
+#define LOAD_OFFLINE 1
 
 using namespace DirectX;
 using namespace SimpleMath;
 
 constexpr UINT VERTEX_TEXTURE_WIDTH = 512;
+
+namespace
+{
+	template <typename T>
+	void OutputBin(const std::vector<T>& vts, uint32_t faceStride)
+	{
+		const std::string name = "Asset/MeshBin/" + std::to_string(faceStride) + ".bin";
+		std::ofstream ofs(name, std::ios::binary | std::ios::out);
+		if (!ofs)
+			throw std::runtime_error("failed to open " + name);
+		for (const auto& v : vts)
+			ofs.write(reinterpret_cast<const char*>(&v), sizeof(T));
+		ofs.close();
+	}
+}
 
 InstancingRenderer2::InstancingRenderer2(
 	ID3D11Device* device, const std::shared_ptr<GpuConstants>& constants,
@@ -28,7 +47,40 @@ void InstancingRenderer2::Initialize(ID3D11DeviceContext* context)
 	ThrowIfFailed(m_Device->CreateVertexShader(blob->GetBufferPointer(),
 		blob->GetBufferSize(), nullptr, &m_VsC16B));
 
+#if LOAD_OFFLINE
+	// load vertex data from file
+	for (const auto& entry : std::filesystem::directory_iterator("Asset/MeshBin"))
+	{
+		uint32_t subsetFace = std::stoi(entry.path().filename().string());
+		const uint32_t subsetVert = subsetFace * 3;
+		std::vector<XMUINT4> vts;
+		std::ifstream ifs(entry.path(), std::ios::binary | std::ios::in);
+		if (!ifs)
+			throw std::runtime_error("failed to open " + entry.path().string());
+		const auto fileSize = file_size(entry.path());
+		vts.resize(fileSize / sizeof(XMUINT4));
+		ifs.read(reinterpret_cast<char*>(vts.data()), fileSize);
+		ifs.close();
+
+		const UINT height = (vts.size() + VERTEX_TEXTURE_WIDTH - 1) / VERTEX_TEXTURE_WIDTH;
+		vts.resize(height * VERTEX_TEXTURE_WIDTH, XMUINT4());
+
+		CD3D11_TEXTURE2D_DESC vtxTex(DXGI_FORMAT_R32G32B32A32_UINT, VERTEX_TEXTURE_WIDTH, height, 1,
+			1, D3D11_BIND_SHADER_RESOURCE, D3D11_USAGE_DEFAULT);
+
+		m_Vt2C16B[subsetFace] = std::make_unique<StructuredBuffer<XMUINT4>>(m_Device, vts.data(),
+			vts.size());
+
+		m_Vt2C16BT[subsetFace] = std::make_unique<Texture2D>(m_Device, vtxTex, vts.data(),
+			vtxTex.Width * sizeof(XMUINT4));
+		m_Vt2C16BT[subsetFace]->CreateViews(m_Device);
+	}
+
+#else
 	const auto& divided = m_AssetLibrary->GetMergedTriangleListDivide();
+
+	for (const auto& dir : std::filesystem::directory_iterator(L"Asset/MeshBin"))
+		std::filesystem::remove(dir.path());
 	for (const auto& [faceStride, vts] : divided)
 	{
 		std::vector<XMUINT4> encoded;
@@ -118,7 +170,11 @@ void InstancingRenderer2::Initialize(ID3D11DeviceContext* context)
 		m_Vt2C16BT[faceStride] = std::make_unique<Texture2D>(m_Device, vtxTex, encoded.data(),
 			vtxTex.Width * sizeof(XMUINT4));
 		m_Vt2C16BT[faceStride]->CreateViews(m_Device);
+
+		//OutputBin(encoded, faceStride);
 	}
+
+#endif
 }
 
 void InstancingRenderer2::Render(ID3D11DeviceContext* context)
@@ -137,7 +193,7 @@ void InstancingRenderer2::Render(ID3D11DeviceContext* context)
 	}
 
 	{
-		ID3D11ShaderResourceView* srv[] = { m_Pt0->GetSrv(), m_Pt1->GetSrv() };
+		ID3D11ShaderResourceView* srv[] = { m_Pt0->GetSrv(), /*m_Pt1->GetSrv()*/ };
 		context->PSSetShaderResources(0, _countof(srv), srv);
 		const auto sampler = s_CommonStates->AnisotropicWrap();
 		context->PSSetSamplers(0, 1, &sampler);

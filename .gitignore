@@ -367,3 +367,5 @@ FodyWeavers.xsd
 *.exe
 /Asset/Mesh
 /Asset/Texture
+/Asset/Json
+/Asset/MeshBin

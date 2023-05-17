@@ -1,10 +1,13 @@
 #include "AssetLibrary.h"
 
 #include <fstream>
+#include <iostream>
 #include <unordered_set>
 
 #include "AssetImporter.h"
 #include "GpuConstants.h"
+
+#include <nlohmann/json.hpp>
 
 using namespace DirectX;
 using namespace SimpleMath;
@@ -31,6 +34,8 @@ void AssetLibrary::Initialize()
 	MergeTriangleLists();
 
 	MergeTriangleListsDivide();
+
+	OutputJson();
 }
 
 std::vector<Material> AssetLibrary::GetMaterialList() const
@@ -102,13 +107,13 @@ void AssetLibrary::NormalizeVertices(AssetImporter::ImporterModelData& model)
 void AssetLibrary::LoadMeshes(const std::filesystem::path& dir)
 {
 	std::unordered_map<std::wstring, const uint32_t> texIdMap;
-	texIdMap.emplace(L".\\Asset\\Texture\\default.dds", m_TextureId);
+	texIdMap.emplace(L"./Asset/Texture/default.dds", m_TextureId);
 
 	std::unordered_set<std::wstring> texExist;
 	for (const auto& entry : std::filesystem::directory_iterator(L"./Asset/Texture"))
 		texExist.emplace(entry.path().filename().wstring());
 
-	m_TextureTbl[GetTextureId()] = L".\\Asset\\Texture\\default.dds";
+	m_TextureTbl[GetTextureId()] = L"./Asset/Texture/default.dds";
 	m_MaterialTbl[GetMaterialId()] = Material();
 	for (const auto& entry : std::filesystem::directory_iterator(dir))
 	{
@@ -155,7 +160,7 @@ void AssetLibrary::LoadMeshes(const std::filesystem::path& dir)
 			else
 			{
 				const auto texId = GetTextureId();
-				m_TextureTbl[texId] = L".\\Asset\\Texture\\" + material.TexturePath.wstring();
+				m_TextureTbl[texId] = L"./Asset/Texture/" + material.TexturePath.wstring();
 				texIdMap.emplace(material.TexturePath.wstring(), texId);
 				m_MaterialTbl.emplace(GetMaterialId(), Material(texId));
 			}
@@ -222,4 +227,34 @@ void AssetLibrary::MergeTriangleListsDivide()
 		};
 		divide(vts.begin(), vts.end());
 	}
+}
+
+void AssetLibrary::OutputJson() const
+{
+	const nlohmann::json jTexList(m_TextureTbl);
+	std::ofstream o("Asset/Json/TextureList.json");
+	o << std::setw(4) << jTexList;
+	o.close();
+
+	const nlohmann::json jSubmeshTbl(m_SubmeshTbl);
+	o.open("Asset/Json/SubmeshTable.json");
+	o << std::setw(4) << jSubmeshTbl;
+	o.close();
+
+	std::map<SubmeshId, TextureId> texIdMap;
+	for (const auto& [submesh, material] : m_MaterialIdTbl)
+	{
+		const auto texId = m_MaterialTbl.at(material).TexIdx;
+		texIdMap.emplace(submesh, texId);
+	}
+
+	const nlohmann::json jTexIdTbl(texIdMap);
+	o.open("Asset/Json/TextureTable.json");
+	o << std::setw(4) << jTexIdTbl;
+	o.close();
+
+	const nlohmann::json jBatchInfo(m_BatchInfo);
+	o.open("Asset/Json/BatchInfo.json");
+	o << std::setw(4) << jBatchInfo;
+	o.close();
 }

@@ -24,7 +24,8 @@ Texture2D::Texture2D(ID3D11Device* device, const std::filesystem::path& path)
 	m_Texture->GetDesc(&m_Desc);
 }
 
-Texture2D::Texture2D(ID3D11Device* device, const D3D11_TEXTURE2D_DESC& desc, const void* initData, uint32_t systemPitch) :
+Texture2D::Texture2D(
+	ID3D11Device* device, const D3D11_TEXTURE2D_DESC& desc, const void* initData, uint32_t systemPitch) :
 	m_Desc(desc)
 {
 	const D3D11_SUBRESOURCE_DATA data { initData, systemPitch, 0 };
@@ -158,20 +159,17 @@ Texture2DArray::Texture2DArray(
 
 	D3D11_TEXTURE2D_DESC arrayDesc;
 	textures[0]->GetDesc(&arrayDesc);
+	arrayDesc.MipLevels = 1;
 	arrayDesc.ArraySize = static_cast<UINT>(textures.size());
 	arrayDesc.BindFlags = D3D11_BIND_SHADER_RESOURCE;
-	const auto mips = arrayDesc.MipLevels;
 	ThrowIfFailed(device->CreateTexture2D(&arrayDesc, nullptr, &m_Texture));
 	for (UINT i = 0; i < textures.size(); ++i)
 	{
-		for (UINT j = 0; j < mips; ++j)
-		{
-			context->CopySubresourceRegion(
-				m_Texture.Get(), D3D11CalcSubresource(j, i, mips),
-				0, 0, 0, 
-				textures[i], D3D11CalcSubresource(j, 0, mips), 
-				nullptr);
-		}
+		context->CopySubresourceRegion(
+			m_Texture.Get(), D3D11CalcSubresource(0, i, arrayDesc.MipLevels),
+			0, 0, 0,
+			textures[i], D3D11CalcSubresource(0, 0, arrayDesc.MipLevels),
+			nullptr);
 	}
 	m_Texture->GetDesc(&m_Desc);
 	Texture2DArray::CreateViews(device);

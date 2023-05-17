@@ -172,6 +172,7 @@
   <ItemGroup>
     <ClCompile Include="AssetImporter.cpp" />
     <ClCompile Include="AssetLibrary.cpp" />
+    <ClCompile Include="AssetLibraryOffline.cpp" />
     <ClCompile Include="BvhTree.cpp" />
     <ClCompile Include="Camera.cpp" />
     <ClCompile Include="DebugRenderer.cpp" />
@@ -192,6 +193,7 @@
     <ClInclude Include="AlignedVector.h" />
     <ClInclude Include="AssetImporter.h" />
     <ClInclude Include="AssetLibrary.h" />
+    <ClInclude Include="AssetLibraryOffline.h" />
     <ClInclude Include="BvhTree.h" />
     <ClInclude Include="Camera.h" />
     <ClInclude Include="CullingSoa.h" />

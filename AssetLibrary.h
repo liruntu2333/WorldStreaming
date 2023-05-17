@@ -27,24 +27,24 @@ public:
 	using LocationInBatch = std::pair<FacePerSubset, OffsetInBatch>;
 
 	AssetLibrary() = default;
-	~AssetLibrary() = default;
+	virtual ~AssetLibrary() = default;
 
 	AssetLibrary(const std::filesystem::path& assetDir, const std::shared_ptr<GpuConstants>& constants) :
 		m_AssetDir(assetDir), m_Constants(constants) {}
 
-	void Initialize();
+	virtual void Initialize();
 
 	[[nodiscard]] std::vector<Material> GetMaterialList() const;
 	[[nodiscard]] std::vector<SubmeshInstance> QuerySubmesh(const std::vector<MeshId>& objects) const;
 
-	[[nodiscard]] std::vector<DividedSubmeshInstance> QuerySubmeshDivide(const std::vector<MeshId>& objects) const;
+	virtual [[nodiscard]] std::vector<DividedSubmeshInstance> QuerySubmeshDivide(const std::vector<MeshId>& objects) const;
 	[[nodiscard]] const auto& GetMergedTriangleList() const { return m_MergedTriangleList; }
 	[[nodiscard]] const auto& GetMergedTriangleListDivide() const { return m_MergedTriangleBatches; }
 	[[nodiscard]] const auto& GetTextureTable() const { return m_TextureTbl; }
 
 	auto GetMeshCount() const { return m_SubmeshTbl.size(); }
 
-private:
+protected:
 	[[nodiscard]] auto GetMeshId()
 	{
 		assert(m_MeshId != INT32_MAX);
@@ -72,6 +72,7 @@ private:
 	void LoadMeshes(const std::filesystem::path& dir);
 	void MergeTriangleLists();
 	void MergeTriangleListsDivide();
+	void OutputJson() const;
 	static void NormalizeVertices(AssetImporter::ImporterModelData& model);
 
 	std::filesystem::path m_AssetDir = L"./Asset/Mesh";
@@ -80,7 +81,7 @@ private:
 	std::unordered_map<SubmeshId, MaterialId> m_MaterialIdTbl {};
 	std::unordered_map<MaterialId, Material> m_MaterialTbl {};
 	std::map<TextureId, std::filesystem::path> m_TextureTbl {};
-
+	
 	// stride = 16, 32, 64, ... triangles
 	std::map<FacePerSubset, TriangleBatch> m_MergedTriangleBatches {};
 	// on which batches and offset of what

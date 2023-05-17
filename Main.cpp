@@ -17,6 +17,7 @@
 #include "MergedSubmeshInstance.h"
 #include "DebugRenderer.h"
 #include "AssetLibrary.h"
+#include "AssetLibraryOffline.h"
 
 #include "Texture2D.h"
 
@@ -38,11 +39,12 @@ namespace
 	std::shared_ptr<std::vector<DividedSubmeshInstance>> g_DividedIns = nullptr;
 
 	std::unique_ptr<Renderer> g_PlaneRender = nullptr;
-	std::unique_ptr<InstancingRenderer3> g_MeshRender = nullptr;
+	std::unique_ptr<InstancingRenderer> g_MeshRender = nullptr;
 	std::unique_ptr<Renderer> g_DebugRender = nullptr;
 	std::unique_ptr<Camera> g_Camera = nullptr;
 	std::unique_ptr<WorldSystem> g_WorldSystem = nullptr;
-	std::shared_ptr<AssetLibrary> g_AssetLibrary = nullptr;
+	//std::shared_ptr<AssetLibrary> g_AssetLibrary = nullptr;
+	std::shared_ptr<AssetLibrary> g_AssetLibraryOffline = nullptr;
 }
 
 // Forward declarations of helper functions
@@ -125,12 +127,13 @@ int main(int, char**)
 
 		UpdateConstants(io);
 
+		static bool freezeFrustum = false;
 		static int loopCnt = 0;
 		static float timeSum = 0.0f;
 		static float timeAvg = 0.0f;
 
 		auto begin = std::chrono::steady_clock::now();
-		auto [objIns, drawArgs] = g_WorldSystem->Tick(*g_Camera);
+		auto [objIns, drawArgs] = g_WorldSystem->Tick(*g_Camera, freezeFrustum);
 		auto end = std::chrono::steady_clock::now();
 		*g_ObjectIns = std::move(objIns);
 		*g_DividedIns = std::move(drawArgs);
@@ -141,13 +144,15 @@ int main(int, char**)
 			loopCnt = 0;
 			timeSum = 0.0f;
 		}
-
 		ImGui::Begin("Culling tick");
+		if (ImGui::Button("Freeze Frustum")) freezeFrustum = !freezeFrustum;
+		ImGui::SameLine();
+		static bool visualizeBs = false;
+		if (ImGui::Button("Visualize Bounding")) visualizeBs = !visualizeBs;
 		ImGui::Text("Object count : %d Visible count : %d Culling avg time : %2.0fus Frame rate : %2.0f FPS",
 			g_WorldSystem->GetObjectCount(), g_ObjectIns->size(), timeAvg, io.Framerate);
 		static int splitMethod = 0;
 		static int objectInNode = 128;
-		static bool visualizeBs = false;
 
 		bool changed = false;
 		changed |= ImGui::DragInt("Object in node", &objectInNode, 1, 1, INT32_MAX);
@@ -158,22 +163,21 @@ int main(int, char**)
 		changed |= ImGui::RadioButton("Volume Heuristic", &splitMethod, 2);
 		if (changed)
 			g_WorldSystem->GenerateBvh(objectInNode, static_cast<BvhTree::SpitMethod>(splitMethod));
-		if (ImGui::Button("Visualize Bounding")) visualizeBs = !visualizeBs;
 
-		static int renderMode = 0;
-		ImGui::RadioButton("44 Byte Vertex", &renderMode, 0);
-		ImGui::SameLine();
-		ImGui::RadioButton("16 Byte Vertex", &renderMode, 1);
-		ImGui::SameLine();
-		ImGui::RadioButton("24 Byte Vertex", &renderMode, 2);
+		//static int renderMode = 0;
+		//ImGui::RadioButton("44 Byte Vertex", &renderMode, 0);
+		//ImGui::SameLine();
+		//ImGui::RadioButton("16 Byte Vertex", &renderMode, 1);
+		//ImGui::SameLine();
+		//ImGui::RadioButton("24 Byte Vertex", &renderMode, 2);
 
-		uint32_t bufferMb = renderMode == 0
-			                    ? g_MeshRender->InstancingRenderer1::GetVertexBufferByteSize()
-			                    : renderMode == 1
-				                      ? g_MeshRender->InstancingRenderer2::GetVertexBufferByteSize()
-				                      : g_MeshRender->InstancingRenderer3::GetVertexBufferByteSize();
-		bufferMb /= 1024 * 1024;
-		ImGui::Text("Vertex Buffer size : %d MB", bufferMb);
+		//uint32_t bufferMb = renderMode == 0
+		//	                    ? g_MeshRender->InstancingRenderer1::GetVertexBufferByteSize()
+		//	                    : renderMode == 1
+		//		                      ? g_MeshRender->InstancingRenderer2::GetVertexBufferByteSize()
+		//		                      : g_MeshRender->InstancingRenderer3::GetVertexBufferByteSize();
+		//bufferMb /= 1024 * 1024;
+		//ImGui::Text("Vertex Buffer size : %d MB", bufferMb);
 
 		ImGui::End();
 
@@ -192,21 +196,24 @@ int main(int, char**)
 		g_PlaneRender->UpdateBuffer(g_pd3dDeviceContext);
 		g_PlaneRender->Render(g_pd3dDeviceContext);
 
-		if (renderMode == 0)
-		{
-			g_MeshRender->InstancingRenderer1::UpdateBuffer(g_pd3dDeviceContext);
-			g_MeshRender->InstancingRenderer1::Render(g_pd3dDeviceContext);
-		}
-		else if (renderMode == 1)
-		{
-			g_MeshRender->InstancingRenderer2::UpdateBuffer(g_pd3dDeviceContext);
-			g_MeshRender->InstancingRenderer2::Render(g_pd3dDeviceContext);
-		}
-		else
-		{
-			g_MeshRender->InstancingRenderer3::UpdateBuffer(g_pd3dDeviceContext);
-			g_MeshRender->InstancingRenderer3::Render(g_pd3dDeviceContext);
-		}
+		g_MeshRender->UpdateBuffer(g_pd3dDeviceContext);
+		g_MeshRender->Render(g_pd3dDeviceContext);
+
+		//if (renderMode == 0)
+		//{
+		//	g_MeshRender->InstancingRenderer1::UpdateBuffer(g_pd3dDeviceContext);
+		//	g_MeshRender->InstancingRenderer1::Render(g_pd3dDeviceContext);
+		//}
+		//else if (renderMode == 1)
+		//{
+		//	g_MeshRender->InstancingRenderer2::UpdateBuffer(g_pd3dDeviceContext);
+		//	g_MeshRender->InstancingRenderer2::Render(g_pd3dDeviceContext);
+		//}
+		//else
+		//{
+		//	g_MeshRender->InstancingRenderer3::UpdateBuffer(g_pd3dDeviceContext);
+		//	g_MeshRender->InstancingRenderer3::Render(g_pd3dDeviceContext);
+		//}
 
 		if (visualizeBs)
 		{
@@ -325,17 +332,20 @@ void InitWorldStreaming()
 	g_ObjectIns = std::make_shared<std::vector<ObjectInstance>>();
 	g_DividedIns = std::make_shared<std::vector<DividedSubmeshInstance>>();
 
-	g_AssetLibrary = std::make_shared<AssetLibrary>(L"./Asset/Mesh", g_GpuConstants);
-	g_AssetLibrary->Initialize();
+	//g_AssetLibrary = std::make_shared<AssetLibrary>(L"./Asset/Mesh", g_GpuConstants);
+	//g_AssetLibrary->Initialize();
+
+	g_AssetLibraryOffline = std::make_shared<AssetLibraryOffline>();
+	g_AssetLibraryOffline->Initialize();
 
 	g_PlaneRender = std::make_unique<PlaneRenderer>(g_pd3dDevice, g_GpuConstants);
 	g_PlaneRender->Initialize(g_pd3dDeviceContext);
 
-	g_MeshRender = std::make_unique<InstancingRenderer3>(g_pd3dDevice, g_GpuConstants, g_SubmeshIns, g_ObjectIns,
-		g_AssetLibrary, g_DividedIns);
+	g_MeshRender = std::make_unique<InstancingRenderer2>(g_pd3dDevice, g_GpuConstants, g_SubmeshIns, g_ObjectIns,
+		g_AssetLibraryOffline, g_DividedIns);
 	g_MeshRender->Initialize(g_pd3dDeviceContext);
 
-	g_WorldSystem = std::make_unique<WorldSystem>(g_GpuConstants, g_AssetLibrary);
+	g_WorldSystem = std::make_unique<WorldSystem>(g_GpuConstants, g_AssetLibraryOffline);
 	g_WorldSystem->Initialize();
 
 	g_DebugRender = std::make_unique<DebugRenderer>(g_pd3dDevice, g_GpuConstants, g_WorldSystem->GetBvhTree());

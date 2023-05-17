@@ -85,9 +85,11 @@ void WorldSystem::Initialize()
 }
 
 std::pair<std::vector<ObjectInstance>, std::vector<DividedSubmeshInstance>> WorldSystem::Tick(
-	const Camera& camera) const
+	const Camera& camera, bool freezeFrustum) const
 {
-	const auto frustum = camera.GetFrustum();
+	static DirectX::BoundingFrustum frustum;
+	if (!freezeFrustum) frustum = camera.GetFrustum();
+
 	auto visible = m_Bvh->TickCulling(frustum);
 	std::vector<DirectX::BoundingSphere> spheres(visible.size());
 	for (uint32_t i = 0; i < visible.size(); ++i)
