@@ -5,6 +5,8 @@ VisualStudioVersion = 17.5.33424.131
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "WorldStreaming", "WorldStreaming.vcxproj", "{F1455EEF-3443-41E6-97E0-7B39F9BE4FA9}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "MeshSplitter", "MeshSplitter\MeshSplitter.vcxproj", "{83D6F501-754A-4D0E-BC39-6276C88AFC5D}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x64 = Debug|x64
@@ -21,6 +23,14 @@ Global
 		{F1455EEF-3443-41E6-97E0-7B39F9BE4FA9}.Release|x64.Build.0 = Release|x64
 		{F1455EEF-3443-41E6-97E0-7B39F9BE4FA9}.Release|x86.ActiveCfg = Release|Win32
 		{F1455EEF-3443-41E6-97E0-7B39F9BE4FA9}.Release|x86.Build.0 = Release|Win32
+		{83D6F501-754A-4D0E-BC39-6276C88AFC5D}.Debug|x64.ActiveCfg = Debug|x64
+		{83D6F501-754A-4D0E-BC39-6276C88AFC5D}.Debug|x64.Build.0 = Debug|x64
+		{83D6F501-754A-4D0E-BC39-6276C88AFC5D}.Debug|x86.ActiveCfg = Debug|Win32
+		{83D6F501-754A-4D0E-BC39-6276C88AFC5D}.Debug|x86.Build.0 = Debug|Win32
+		{83D6F501-754A-4D0E-BC39-6276C88AFC5D}.Release|x64.ActiveCfg = Release|x64
+		{83D6F501-754A-4D0E-BC39-6276C88AFC5D}.Release|x64.Build.0 = Release|x64
+		{83D6F501-754A-4D0E-BC39-6276C88AFC5D}.Release|x86.ActiveCfg = Release|Win32
+		{83D6F501-754A-4D0E-BC39-6276C88AFC5D}.Release|x86.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

@@ -76,12 +76,8 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <OutDir>$(ProjectDir)</OutDir>
   </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-    <TargetName>Editor</TargetName>
-  </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
-    <TargetName>Editor</TargetName>
-  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" />
   <PropertyGroup Label="Vcpkg">
     <VcpkgEnabled>true</VcpkgEnabled>
   </PropertyGroup>
@@ -145,6 +141,7 @@
       <ShaderModel>5.0</ShaderModel>
       <ObjectFileOutput>$(ProjectDir)Shader\%(Filename).cso</ObjectFileOutput>
     </FxCompile>
+    <PostBuildEvent />
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <ClCompile>
@@ -168,6 +165,7 @@
       <ShaderModel>5.0</ShaderModel>
       <ObjectFileOutput>$(ProjectDir)Shader\%(Filename).cso</ObjectFileOutput>
     </FxCompile>
+    <PostBuildEvent />
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="AssetImporter.cpp" />
