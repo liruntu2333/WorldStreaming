@@ -36,7 +36,7 @@ void InstancingRenderer::Initialize(ID3D11DeviceContext* context)
 	const auto& texTbl = m_AssetLibrary->GetTextureTable();
 	std::vector<std::filesystem::path> paths;
 	for (const auto& [id, path] : texTbl)
-		paths.push_back(path);
+		paths.push_back("Asset/Texture/" + path.u8string());
 	m_Pt0 = std::make_unique<Texture2DArray>(m_Device, context, paths);
 
 	m_Pt0->CreateViews(m_Device);

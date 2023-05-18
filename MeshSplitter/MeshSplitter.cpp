@@ -1,3 +1,4 @@
+#define NOMINMAX
 #include "MeshSplitter.h"
 
 #include <fstream>
@@ -25,7 +26,7 @@ namespace
 	template <typename T>
 	void OutputVertexBin(const std::vector<T>& vts, uint32_t faceStride)
 	{
-		const std::string name = "MeshBin/" + std::to_string(faceStride) + ".bin";
+		const std::string name = "Asset/MeshBin/" + std::to_string(faceStride) + ".bin";
 		std::ofstream ofs(name, std::ios::binary | std::ios::out);
 		if (!ofs)
 			throw std::runtime_error("failed to open " + name);
@@ -54,12 +55,12 @@ void MeshSplitter::LoadMeshes(const std::filesystem::path& dir)
 	texIdMap.emplace("default.dds", m_TextureId);
 
 	std::unordered_set<std::string> texExist;
-	for (const auto& entry : std::filesystem::directory_iterator("Texture"))
+	for (const auto& entry : std::filesystem::directory_iterator("Asset/Texture"))
 		texExist.emplace(entry.path().filename().string());
 
 	m_TextureTbl[GetTextureId()] = "default.dds";
 	m_Materials[GetMaterialId()] = Material();
-	for (const auto& entry : std::filesystem::directory_iterator("Mesh"))
+	for (const auto& entry : std::filesystem::directory_iterator("Asset/Mesh"))
 	{
 		if (!entry.is_regular_file() || entry.path().extension() != ".fbx") continue;
 		AssetImporter::ImporterModelData model = AssetImporter::LoadAsset(entry.path());
@@ -115,6 +116,18 @@ void MeshSplitter::LoadMeshes(const std::filesystem::path& dir)
 		// build mesh-subset map
 		m_SubmeshTbl[GetMeshId()] = { ssIdStart, ssCnt };
 	}
+	uint64_t faceCnt = 0;
+	uint64_t maxFace = 0;
+	for (const auto& [id, vts] : m_SubmeshVertices)
+	{
+		const uint32_t vtxCnt = vts.size();
+		faceCnt += vtxCnt / 3;
+		maxFace = std::max(maxFace, static_cast<uint64_t>(vtxCnt / 3));
+	}
+	faceCnt /= m_SubmeshVertices.size();
+	std::cout << "Meshes loaded, " << m_SubmeshVertices.size() << " sub-meshes, " << 
+		faceCnt << " faces on average" <<
+		", " << maxFace << " faces at most" << std::endl;
 }
 
 void MeshSplitter::SplitIntoCluster()
@@ -220,7 +233,7 @@ void MeshSplitter::EncodeVertices()
 
 void MeshSplitter::OutputFile() const
 {
-	for (const auto& dir : std::filesystem::directory_iterator(L"MeshBin"))
+	for (const auto& dir : std::filesystem::directory_iterator(L"Asset/MeshBin"))
 		std::filesystem::remove(dir.path());
 	for (const auto& [faceCnt, evs] : m_EncodedClusters)
 	{
