@@ -1,6 +1,8 @@
 #include <random>
 #include "WorldSystem.h"
 
+#include <iostream>
+
 #include "CullingSoa.h"
 #include "Camera.h"
 #include "ObjectInstance.h"

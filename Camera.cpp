@@ -7,12 +7,12 @@ using namespace SimpleMath;
 
 Matrix Camera::GetViewMatrix() const
 {
-    return XMMatrixLookToLH(m_Position, m_Forward, Vector3::Up);
+    return Matrix::CreateLookAt(m_Position, m_Position + m_Forward, Vector3::Up);
 }
 
 Matrix Camera::GetProjectionMatrix() const
 {
-    return XMMatrixPerspectiveFovLH(m_Fov, m_AspectRatio, m_NearPlane, m_FarPlane);
+    return Matrix::CreatePerspectiveFieldOfView(m_Fov, m_AspectRatio, m_NearPlane, m_FarPlane);
 }
 
 Matrix Camera::GetViewProjectionMatrix() const
@@ -50,34 +50,34 @@ void Camera::Update(const ImGuiIO& io)
 
     const float dt = io.DeltaTime;
     const Matrix rot = Matrix::CreateFromYawPitchRoll(m_Rotation);
-    const auto forward = -rot.Forward();
+    const auto forward = rot.Forward();
     forward.Normalize(m_Forward);
     const auto right = rot.Right();
     right.Normalize(m_Right);
 
     if (io.KeysDown[ImGui::GetKeyIndex(ImGuiKey_W)])
     {
-        m_Position += forward * dt * 500.0f;
+        m_Position += forward * dt * 50.0f;
     }
     if (io.KeysDown[ImGui::GetKeyIndex(ImGuiKey_S)])
     {
-        m_Position -= forward * dt * 500.0f;
+        m_Position -= forward * dt * 50.0f;
     }
     if (io.KeysDown[ImGui::GetKeyIndex(ImGuiKey_A)])
     {
-        m_Position -= right * dt * 500.0f;
+        m_Position -= right * dt * 50.0f;
     }
     if (io.KeysDown[ImGui::GetKeyIndex(ImGuiKey_D)])
     {
-        m_Position += right * dt * 500.0f;
+        m_Position += right * dt * 50.0f;
     }
 
     if (io.MouseDown[ImGuiMouseButton_Right])
     {
         const auto dx = io.MouseDelta.x;
         const auto dy = io.MouseDelta.y;
-        m_Rotation.x += dy * 0.001f;
-        m_Rotation.y += dx * 0.001f;
+        m_Rotation.x -= dy * 0.003f;
+        m_Rotation.y -= dx * 0.003f;
         m_Rotation.x = std::clamp(m_Rotation.x, -XM_PIDIV2 + 0.1f, XM_PIDIV2 - 0.1f);
     }
 }

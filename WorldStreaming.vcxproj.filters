@@ -52,6 +52,7 @@
     <ClInclude Include="PackedVertex.h" />
     <ClInclude Include="InstancingRenderer3.h" />
     <ClInclude Include="AssetLibraryOffline.h" />
+    <ClInclude Include="SphereRenderer.h" />
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Shader">

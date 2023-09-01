@@ -32,7 +32,7 @@ DebugRenderer::DebugRenderer(ID3D11Device* device, std::shared_ptr<GpuConstants>
 
 void DebugRenderer::Initialize(ID3D11DeviceContext* context)
 {
-    m_SphereGeo = GeometricPrimitive::CreateSphere(context, 2.0f, 16, false);
+    m_SphereGeo = GeometricPrimitive::CreateSphere(context, 2.0f, 7, false);
 }
 
 void DebugRenderer::Render(ID3D11DeviceContext* context)

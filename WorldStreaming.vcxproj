@@ -211,6 +211,7 @@
     <ClInclude Include="PackedVertex.h" />
     <ClInclude Include="PlaneRenderer.h" />
     <ClInclude Include="Renderer.h" />
+    <ClInclude Include="SphereRenderer.h" />
     <ClInclude Include="StaticObject.h" />
     <ClInclude Include="StructuredBuffer.h" />
     <ClInclude Include="SubmeshInstance.h" />

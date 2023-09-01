@@ -12,6 +12,7 @@
 #include "PlaneRenderer.h"
 #include "InstancingRenderer2.h"
 #include "InstancingRenderer3.h"
+#include "SphereRenderer.h"
 #include "Camera.h"
 #include "ObjectInstance.h"
 #include "MergedSubmeshInstance.h"
@@ -40,6 +41,7 @@ namespace
 
 	std::unique_ptr<Renderer> g_PlaneRender = nullptr;
 	std::unique_ptr<InstancingRenderer> g_MeshRender = nullptr;
+	std::unique_ptr<SphereRenderer> g_SphereRenderer = nullptr;
 	std::unique_ptr<Renderer> g_DebugRender = nullptr;
 	std::unique_ptr<Camera> g_Camera = nullptr;
 	std::unique_ptr<WorldSystem> g_WorldSystem = nullptr;
@@ -193,11 +195,11 @@ int main(int, char**)
 
 		g_Camera->SetViewPort(g_pd3dDeviceContext);
 
-		g_PlaneRender->UpdateBuffer(g_pd3dDeviceContext);
-		g_PlaneRender->Render(g_pd3dDeviceContext);
-
-		g_MeshRender->UpdateBuffer(g_pd3dDeviceContext);
-		g_MeshRender->Render(g_pd3dDeviceContext);
+		// g_PlaneRender->UpdateBuffer(g_pd3dDeviceContext);
+		// g_PlaneRender->Render(g_pd3dDeviceContext);
+		//
+		// g_MeshRender->UpdateBuffer(g_pd3dDeviceContext);
+		// g_MeshRender->Render(g_pd3dDeviceContext);
 
 		//if (renderMode == 0)
 		//{
@@ -215,11 +217,14 @@ int main(int, char**)
 		//	g_MeshRender->InstancingRenderer3::Render(g_pd3dDeviceContext);
 		//}
 
-		if (visualizeBs)
-		{
-			g_DebugRender->UpdateBuffer(g_pd3dDeviceContext);
-			g_DebugRender->Render(g_pd3dDeviceContext);
-		}
+		// if (visualizeBs)
+		// {
+		// 	g_DebugRender->UpdateBuffer(g_pd3dDeviceContext);
+		// 	g_DebugRender->Render(g_pd3dDeviceContext);
+		// }
+		Matrix view = g_Camera->GetViewMatrix();
+		Matrix proj = g_Camera->GetProjectionMatrix();
+		g_SphereRenderer->Render(view, proj);
 
 		ImGui_ImplDX11_RenderDrawData(ImGui::GetDrawData());
 
@@ -344,6 +349,9 @@ void InitWorldStreaming()
 	g_MeshRender = std::make_unique<InstancingRenderer2>(g_pd3dDevice, g_GpuConstants, g_SubmeshIns, g_ObjectIns,
 		g_AssetLibraryOffline, g_DividedIns);
 	g_MeshRender->Initialize(g_pd3dDeviceContext);
+
+	g_SphereRenderer = std::make_unique<SphereRenderer>(g_pd3dDevice);
+	g_SphereRenderer->Initialize(g_pd3dDeviceContext);
 
 	g_WorldSystem = std::make_unique<WorldSystem>(g_GpuConstants, g_AssetLibraryOffline);
 	g_WorldSystem->Initialize();
