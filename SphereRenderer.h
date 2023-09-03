@@ -33,7 +33,7 @@ inline void SphereRenderer::Initialize(ID3D11DeviceContext* context)
 
     auto createSphere = [&]
     {
-        constexpr int tessellation = 32;
+        constexpr int tessellation = 7;
         constexpr float diameter = 20;
         if constexpr (tessellation < 3)
             throw std::invalid_argument("tessellation parameter must be at least 3");
@@ -46,7 +46,7 @@ inline void SphereRenderer::Initialize(ID3D11DeviceContext* context)
         // Create rings of vertices at progressively higher latitudes.
         for (size_t i = 0; i <= verticalSegments; i++)
         {
-            const float v = 1 - float(i) / float(verticalSegments);
+            // const float v = 1 - float(i) / float(verticalSegments);
 
             const float latitude = (float(i) * XM_PI / float(verticalSegments)) - XM_PIDIV2;
             float dy, dxz;
@@ -56,7 +56,7 @@ inline void SphereRenderer::Initialize(ID3D11DeviceContext* context)
             // Create a single ring of vertices at this latitude.
             for (size_t j = 0; j <= horizontalSegments; j++)
             {
-                const float u = float(j) / float(horizontalSegments);
+                // const float u = float(j) / float(horizontalSegments);
 
                 const float longitude = float(j) * XM_2PI / float(horizontalSegments);
                 float dx, dz;
@@ -65,6 +65,28 @@ inline void SphereRenderer::Initialize(ID3D11DeviceContext* context)
 
                 dx *= dxz;
                 dz *= dxz;
+
+                const float phi = fmodf(longitude, XM_PIDIV2);
+                const float r = cosf(latitude);
+                float v = r * phi * (2.0f / XM_PI);
+                float u = r - v;
+                const float theta = longitude - XM_PI;
+                if (latitude < 0)
+                {
+                    const float tmp = u;
+                    u = 1 - v;
+                    v = 1 - tmp;
+                }
+                if (abs(theta) > XM_PIDIV2)
+                {
+                    v = -v;
+                }
+                if (theta < 0)
+                {
+                    u = -u;
+                }
+                u = u * 0.5f + 0.5f;
+                v = v * 0.5f + 0.5f;
 
                 const XMVECTOR normal = XMVectorSet(dx, dy, dz, 0);
                 const XMVECTOR textureCoordinate = XMVectorSet(u, v, 0, 0);
@@ -100,12 +122,12 @@ inline void SphereRenderer::Initialize(ID3D11DeviceContext* context)
 
     m_Texture = std::make_unique<Texture2D>(m_Device,
         //L"Asset/Texture/rock_planet_texture___flat_by_tbh_1138_d34l30e-pre.jpg");
-        L"Asset/Texture/12390893.jpg");
+        L"Asset/Texture/tiles_0059_color_2k.jpg");
 }
 
 inline void SphereRenderer::Render(
     const Matrix& view, const Matrix& proj) const
 {
     m_SphereGeo->Draw(Matrix::Identity, view, proj, DirectX::Colors::White,
-        m_Texture->GetSrv(), false);
+        m_Texture->GetSrv());
 }
