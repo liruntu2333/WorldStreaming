@@ -78,6 +78,6 @@ void Camera::Update(const ImGuiIO& io)
         const auto dy = io.MouseDelta.y;
         m_Rotation.x -= dy * 0.003f;
         m_Rotation.y -= dx * 0.003f;
-        m_Rotation.x = std::clamp(m_Rotation.x, -XM_PIDIV2 + 0.1f, XM_PIDIV2 - 0.1f);
+        m_Rotation.x = std::clamp(m_Rotation.x, -XM_PIDIV2 + 0.001f, XM_PIDIV2 - 0.001f);
     }
 }
